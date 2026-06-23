@@ -89,7 +89,7 @@
   .ctrl.move:hover{border-color:var(--ink-faint);}
   .row[draggable="true"]{cursor:grab;}
   .row.dragging{opacity:.45;}
-  .row:hover .del,.book-item:hover .del,.link-row:hover .del,.row:hover .ctrl{opacity:1;}
+  .row:hover .del,.link-row:hover .del,.row:hover .ctrl{opacity:1;}
   .del:hover{color:var(--deadline);}
 
   .input,.area{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);}
@@ -132,18 +132,27 @@
   .news-a:hover{color:var(--deadline);}
   .news-arrow{font-family:var(--mono);font-size:11px;color:var(--ink-faint);}
 
-  /* ---- Book N Book ---- */
-  .book-item{padding:9px 2px;border-bottom:1px solid var(--line-soft);}
-  .book-item:last-child{border-bottom:none;}
-  .book-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
-  .book-title{font-size:13.5px;font-weight:700;}
-  .book-page{font-family:var(--mono);font-size:11px;color:var(--ink-soft);flex:none;}
-  .book-quote{margin-top:4px;font-size:13px;color:var(--ink);line-height:1.5;}
-  .book-date{margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;justify-content:space-between;}
-
   ::-webkit-scrollbar{width:8px;height:8px;}
   ::-webkit-scrollbar-thumb{background:#D6D5CB;border-radius:8px;}
   ::-webkit-scrollbar-track{background:transparent;}
+
+  /* ---- 로그인 화면 ---- */
+  .auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+  .auth-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;width:100%;max-width:360px;padding:26px 24px;}
+  .auth-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+  .auth-sub{font-size:12px;color:var(--ink-soft);margin-bottom:18px;font-family:var(--mono);letter-spacing:.03em;}
+  .auth-field{margin-bottom:11px;}
+  .auth-field label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-family:var(--mono);font-weight:700;margin-bottom:5px;}
+  .auth-btns{display:flex;gap:8px;margin-top:16px;}
+  .auth-btn{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:var(--sans);font-size:13.5px;font-weight:700;cursor:pointer;}
+  .auth-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .auth-btn.ghost{background:var(--surface);color:var(--ink);}
+  .auth-btn:hover{opacity:.9;}
+  .auth-msg{margin-top:14px;font-size:12.5px;line-height:1.5;min-height:18px;}
+  .auth-msg.err{color:#8d0000;}
+  .auth-msg.ok{color:var(--cat-plan);}
+  .logout-btn{position:fixed;top:10px;right:14px;z-index:900;font-family:var(--mono);font-size:10px;letter-spacing:.05em;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 9px;color:var(--ink-soft);cursor:pointer;}
+  .logout-btn:hover{background:var(--surface-2);}
 
   @media (max-width:1040px){
     .app{height:auto;grid-template-columns:1fr;}
@@ -154,6 +163,27 @@
 </style>
 </head>
 <body>
+
+<!-- ===== 로그인 화면 ===== -->
+<div class="auth-overlay" id="authOverlay" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-title">Planner</div>
+    <div class="auth-sub">숫자 4자리를 입력하세요</div>
+    <div class="auth-field">
+      <label for="authCode">CODE · 숫자 4자리</label>
+      <input class="input" id="authCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+             placeholder="예: 1234" autocomplete="off"
+             style="text-align:center;font-family:var(--mono);font-size:22px;letter-spacing:.4em;padding:12px 10px;">
+    </div>
+    <div class="auth-btns">
+      <button class="auth-btn primary" id="btnOpen">열기</button>
+    </div>
+    <div class="auth-msg" id="authMsg">이 4자리만 기억하면 어느 기기에서나 같은 데이터가 열립니다.</div>
+  </div>
+</div>
+
+<button class="logout-btn" id="logoutBtn" style="display:none;">잠금</button>
+
 <div class="app">
 
   <!-- ===== 좌측 ===== -->
@@ -266,19 +296,67 @@
 
 </div>
 
+<!-- Supabase 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
 
-  /* ---------- 저장소 ---------- */
-  var KEY="planner_v1";
-  var db=load();
-  function load(){
-    try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):seed();}catch(e){return seed();}
-  }
-  function seed(){return{daily:{},weekly:{},memo:{},links:[],books:[]};}
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+  /* ---------- Supabase 연결 ---------- */
+  var SB_URL="https://zkcuijlymxjdywmmymdx.supabase.co";
+  var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprY3Vpamx5bXhqZHl3bW15bWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxODI5MjAsImV4cCI6MjA5Nzc1ODkyMH0.nqTlbe-kN-rXfQJbtJTkS9NyLa9248z9v1OQm6ax8zQ";
+  var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+  /* ---------- 화면 요소 ---------- */
+  var appEl=document.querySelector(".app");
+  var overlayEl=document.getElementById("authOverlay");
+  var logoutBtn=document.getElementById("logoutBtn");
+  var authCode=document.getElementById("authCode");
+  var btnOpen=document.getElementById("btnOpen");
+  var authMsg=document.getElementById("authMsg");
+
+  /* ---------- 상태 ---------- */
+  var code=null;
+  var appStarted=false;
+  var saveTimer=null;
+
+  /* ---------- 저장소(Supabase) ---------- */
+  var db=seed();
+  function seed(){return{daily:{},weekly:{},memo:{},links:[]};}
   function uid(){return "i"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+
+  function save(){
+    if(!code) return;
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(doSave,600);
+  }
+  async function doSave(){
+    if(!code) return;
+    try{
+      var res=await sb.from("planner_codes").upsert({
+        code:code,
+        data:db,
+        updated_at:new Date().toISOString()
+      });
+      if(res.error){ console.error("저장 오류:",res.error); }
+    }catch(e){ console.error("저장 오류:",e); }
+  }
+  async function loadData(){
+    try{
+      var res=await sb.from("planner_codes").select("data").eq("code",code).maybeSingle();
+      if(res.error){ console.error("불러오기 오류:",res.error); return seed(); }
+      if(res.data && res.data.data){
+        var d=res.data.data;
+        return {
+          daily:d.daily||{},
+          weekly:d.weekly||{},
+          memo:d.memo||{},
+          links:d.links||[]
+        };
+      }
+      return seed();
+    }catch(e){ console.error("불러오기 오류:",e); return seed(); }
+  }
 
   /* ---------- 날짜 유틸 ---------- */
   function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -512,34 +590,6 @@
     });
   }
 
-  /* ---------- Book N Book ---------- */
-  function renderBooks(){
-    var el=document.getElementById("bookList"); el.innerHTML="";
-    if(db.books.length===0){el.innerHTML='<div class="empty-hint">감명 깊은 구절을 기록하세요.</div>';}
-    db.books.slice().reverse().forEach(function(bk){
-      var item=document.createElement("div"); item.className="book-item";
-      var top=document.createElement("div"); top.className="book-top";
-      var t=document.createElement("span"); t.className="book-title"; t.textContent=bk.title;
-      var p=document.createElement("span"); p.className="book-page"; p.textContent=bk.page?("p."+bk.page):"";
-      top.appendChild(t); top.appendChild(p);
-      var q=document.createElement("div"); q.className="book-quote"; q.textContent="“"+bk.quote+"”";
-      var dt=document.createElement("div"); dt.className="book-date";
-      var when=document.createElement("span"); when.textContent=bk.date;
-      var del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="삭제"; del.style.opacity="1";
-      del.onclick=function(){db.books=db.books.filter(function(x){return x.id!==bk.id;});save();renderBooks();};
-      dt.appendChild(when); dt.appendChild(del);
-      item.appendChild(top); item.appendChild(q); item.appendChild(dt);
-      el.appendChild(item);
-    });
-  }
-  function addBook(){
-    var t=document.getElementById("bookTitle"); var p=document.getElementById("bookPage"); var q=document.getElementById("bookQuote");
-    var title=t.value.trim(), quote=q.value.trim();
-    if(!title||!quote){return;}
-    db.books.push({id:uid(),title:title,page:p.value.trim(),quote:quote,date:iso(today)});
-    t.value="";p.value="";q.value=""; save(); renderBooks();
-  }
-
   /* ---------- Today's Wisdom ---------- */
   var WISDOM=[
     {t:"온고지신 (溫故知新)",s:"옛것을 익히고 그것을 미루어 새것을 안다."},
@@ -577,6 +627,7 @@
 
   /* ---------- 렌더 묶음 ---------- */
   function renderAll(){renderCalendar();renderWeekly();renderDaily();renderMemo();}
+  function startApp(){renderAll();renderLinks();renderNews();renderWisdom();}
 
   /* ---------- 이벤트 ---------- */
   document.getElementById("calPrev").onclick=function(){viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1);renderCalendar();};
@@ -596,12 +647,55 @@
   document.getElementById("linkUrl").addEventListener("keydown",function(e){if(e.key==="Enter")addLink();});
   document.getElementById("wisdomMore").onclick=function(){wisdomIdx=(wisdomIdx+1+Math.floor(Math.random()*(WISDOM.length-1)))%WISDOM.length;renderWisdom();};
 
-  /* ---------- 초기 ---------- */
+  /* ---------- 드래그 정렬 준비 ---------- */
   attachSortable(document.getElementById("listPlan"));
   attachSortable(document.getElementById("listClass"));
   attachSortable(document.getElementById("listPersonal"));
   attachSortable(document.getElementById("weeklyList"));
-  renderAll(); renderLinks(); renderNews(); renderWisdom();
+
+  /* ---------- 코드(숫자 4자리) 입력 ---------- */
+  function setMsg(t,cls){ authMsg.textContent=t; authMsg.className="auth-msg"+(cls?(" "+cls):""); }
+
+  /* 입력칸에는 숫자만 들어가도록 */
+  authCode.addEventListener("input",function(){
+    authCode.value=authCode.value.replace(/[^0-9]/g,"").slice(0,4);
+  });
+
+  async function doOpen(){
+    var c=authCode.value.trim();
+    if(!/^\d{4}$/.test(c)){ setMsg("숫자 4자리를 정확히 입력하세요.","err"); return; }
+    setMsg("불러오는 중...","");
+    await openWithCode(c);
+  }
+
+  function doLock(){
+    try{ clearTimeout(saveTimer); }catch(e){}
+    if(code){ doSave(); }   /* 잠그기 전에 마지막 저장 */
+    code=null; appStarted=false;
+    authCode.value="";
+    showLock();
+  }
+
+  btnOpen.onclick=doOpen;
+  logoutBtn.onclick=doLock;
+  authCode.addEventListener("keydown",function(e){if(e.key==="Enter")doOpen();});
+
+  /* ---------- 화면 전환 ---------- */
+  function showAppUI(){ overlayEl.style.display="none"; appEl.style.display="grid"; logoutBtn.style.display=""; }
+  function showLock(){ overlayEl.style.display="flex"; appEl.style.display="none"; logoutBtn.style.display="none"; setMsg("이 4자리만 기억하면 어느 기기에서나 같은 데이터가 열립니다.",""); }
+
+  async function openWithCode(c){
+    code=c;
+    db=await loadData();
+    startApp();
+    appStarted=true;
+    showAppUI();
+  }
+
+  /* ---------- 초기: 코드 입력 화면 ---------- */
+  appEl.style.display="none";
+  overlayEl.style.display="flex";
+  authCode.focus();
 })();
 </script>
 </body>
