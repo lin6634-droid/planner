@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planner</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E9EBE2;
+    --surface:#FCFCFA;
+    --surface-2:#F1F1EB;
+    --ink:#2C2C27;
+    --ink-soft:#747164;
+    --ink-faint:#A7A498;
+    --line:#E3E2D9;
+    --line-soft:#ECEBE3;
+    --accent:#2D2D29;
+    --cat-plan:#7C8B6E;     /* 교무기획 · 세이지 */
+    --cat-class:#8d6b51;    /* 수업 */
+    --cat-personal:#87a2a2; /* 개인 */
+    --deadline:#E08A3C;     /* 마감 · 주황 */
+    --memo-dot:#8d0000;     /* 달력 메모 점 */
+    --mono:"Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:"Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;}
+
+  .app{
+    height:100vh;max-width:1480px;margin:0 auto;padding:18px;
+    display:grid;
+    grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(290px,340px);
+    gap:14px;
+  }
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 10px;border-bottom:1px solid var(--line-soft);flex:none;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;}
+  .eyebrow.red{color:#8d0000;}
+  .eyebrow.blue{color:#91aeba;}
+  .head-sub{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+  .card-body{padding:13px 15px;overflow-y:auto;flex:1;min-height:0;}
+
+  .col{display:grid;gap:14px;min-height:0;}
+  .col-left{grid-template-rows:auto minmax(0,1fr);}
+  .col-mid{grid-template-rows:7fr 3fr;}
+  .col-right{grid-template-rows:3fr 6fr 4fr;}
+
+  /* nav arrows */
+  .nav{display:flex;align-items:center;gap:8px;}
+  .navbtn{width:22px;height:22px;border:1px solid var(--line);background:var(--surface);border-radius:6px;color:var(--ink-soft);font-family:var(--mono);font-size:12px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .navbtn:hover{background:var(--surface-2);}
+  .today-btn{font-family:var(--mono);font-size:10px;letter-spacing:.05em;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:3px 7px;color:var(--ink-soft);cursor:pointer;}
+  .today-btn:hover{background:var(--surface-2);}
+
+  /* ---- 달력 ---- */
+  .cal-title{font-size:15px;font-weight:700;}
+  .cal-title span{font-family:var(--mono);color:var(--ink-soft);font-weight:400;margin-left:6px;font-size:13px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:10px;}
+  .cal-dow{font-family:var(--mono);font-size:10px;text-align:center;color:var(--ink-faint);padding:3px 0 5px;}
+  .cal-dow.sun{color:#B07F6E;} .cal-dow.sat{color:#8B92A0;}
+  .cal-cell{position:relative;font-family:var(--mono);font-size:12.5px;text-align:center;padding:7px 0 9px;border-radius:8px;color:var(--ink);cursor:pointer;border:1px solid transparent;}
+  .cal-cell.empty{visibility:hidden;cursor:default;}
+  .cal-cell.sun{color:#B07F6E;} .cal-cell.sat{color:#8B92A0;}
+  .cal-cell:hover:not(.selected){background:var(--surface-2);}
+  .cal-cell.today{border-color:var(--ink-faint);}
+  .cal-cell.selected{background:var(--accent);color:#fff;font-weight:700;border-color:var(--accent);}
+  .memo-dot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--memo-dot);}
+  .cal-cell.selected .memo-dot{background:#fff;}
+
+  /* ---- 공통 리스트/입력 ---- */
+  .row{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid var(--line-soft);}
+  .row:last-child{border-bottom:none;}
+  .cbox{width:17px;height:17px;flex:none;border:1.5px solid #CAC7BC;border-radius:5px;background:var(--surface);cursor:pointer;position:relative;}
+  .cbox.on{background:#a9a9a3;border-color:var(--accent);}
+  .cbox.on::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .label{flex:1;font-size:13.5px;word-break:break-word;}
+  .label.done{color:var(--ink-faint);text-decoration:line-through;}
+  .due{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;flex:none;}
+  .del{flex:none;border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:14px;line-height:1;opacity:0;padding:0 2px;}
+  .ctrl{flex:none;border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:13px;line-height:1;opacity:0;padding:0 2px;font-family:var(--sans);}
+  .ctrl:hover{color:var(--accent);}
+  .ctrl.move{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:2px 7px;}
+  .ctrl.move:hover{border-color:var(--ink-faint);}
+  .row[draggable="true"]{cursor:grab;}
+  .row.dragging{opacity:.45;}
+  .row:hover .del,.book-item:hover .del,.link-row:hover .del,.row:hover .ctrl{opacity:1;}
+  .del:hover{color:var(--deadline);}
+
+  .input,.area{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);}
+  .input:focus,.area:focus{outline:none;border-color:var(--ink-faint);}
+  .input::placeholder,.area::placeholder{color:var(--ink-faint);}
+  .add-wrap{margin-top:11px;}
+  .add-line{display:flex;gap:7px;}
+
+  /* ---- 데일리 ---- */
+  .daily-date{font-family:var(--mono);font-size:12px;color:#989894;font-weight:700;}
+  .deadline-block{margin-bottom:16px;}
+  .badge-due{font-size:10.5px;font-weight:700;color:#fff;background:var(--deadline);border-radius:999px;padding:2px 9px;flex:none;letter-spacing:.02em;}
+  .section{margin-bottom:16px;}
+  .section:last-child{margin-bottom:0;}
+  .sec-head{display:flex;align-items:center;gap:8px;padding-bottom:5px;margin-bottom:2px;border-bottom:1px solid var(--line-soft);}
+  .sec-tab{width:9px;height:9px;border-radius:3px;flex:none;}
+  .sec-name{font-size:13px;font-weight:700;}
+  .tab-plan{background:var(--cat-plan);} .tab-class{background:var(--cat-class);} .tab-personal{background:var(--cat-personal);}
+  .empty-hint{font-size:12px;color:var(--ink-faint);padding:6px 2px;}
+
+  /* ---- 메모 ---- */
+  .memo-area{flex:1;min-height:80px;resize:none;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;}
+
+  /* ---- Wisdom ---- */
+  .wisdom-text{font-size:15px;line-height:1.6;color:#2c2c27b6;font-weight:700;}
+  .wisdom-sub{margin-top:8px;font-size:12.5px;color:var(--ink-soft);}
+  .wisdom-more{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--ink-faint);background:none;border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer;}
+  .wisdom-more:hover{background:var(--surface-2);color:var(--ink-soft);}
+
+  /* ---- Links ---- */
+  .link-row{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid var(--line-soft);}
+  .link-row:last-child{border-bottom:none;}
+  .link-a{flex:1;color:var(--ink);text-decoration:none;font-size:13.5px;display:flex;align-items:center;gap:7px;}
+  .link-a:hover{color:var(--cat-plan);}
+  .link-dot{width:6px;height:6px;border-radius:50%;background:var(--cat-plan);flex:none;}
+
+  /* ---- News ---- */
+  .news-a{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid var(--line-soft);color:var(--ink);text-decoration:none;font-size:13.5px;}
+  .news-a:last-child{border-bottom:none;}
+  .news-a:hover{color:var(--deadline);}
+  .news-arrow{font-family:var(--mono);font-size:11px;color:var(--ink-faint);}
+
+  /* ---- Book N Book ---- */
+  .book-item{padding:9px 2px;border-bottom:1px solid var(--line-soft);}
+  .book-item:last-child{border-bottom:none;}
+  .book-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .book-title{font-size:13.5px;font-weight:700;}
+  .book-page{font-family:var(--mono);font-size:11px;color:var(--ink-soft);flex:none;}
+  .book-quote{margin-top:4px;font-size:13px;color:var(--ink);line-height:1.5;}
+  .book-date{margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;justify-content:space-between;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#D6D5CB;border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media (max-width:1040px){
+    .app{height:auto;grid-template-columns:1fr;}
+    .col{grid-template-rows:none !important;}
+    .card-body{overflow:visible;}
+    .memo-area{min-height:120px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== 좌측 ===== -->
+  <div class="col col-left">
+    <section class="card">
+      <div class="card-head">
+        <span class="eyebrow red">Monthly</span>
+        <div class="nav">
+          <button class="navbtn" id="calPrev" aria-label="이전 달">‹</button>
+          <button class="navbtn" id="calNext" aria-label="다음 달">›</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cal-title" id="calTitle"></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <span class="eyebrow red">Weekly Task</span>
+        <div class="nav">
+          <span class="head-sub" id="weekRange"></span>
+          <button class="navbtn" id="weekPrev" aria-label="이전 주">‹</button>
+          <button class="navbtn" id="weekNext" aria-label="다음 주">›</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="weeklyList"></div>
+        <div class="add-wrap">
+          <div class="add-line">
+            <input class="input" id="weekInput" placeholder="할 일 입력 후 Enter">
+            <input class="input" id="weekDue" type="date" style="width:140px;flex:none;" title="마감 날짜(선택)">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== 중앙 ===== -->
+  <div class="col col-mid">
+    <section class="card">
+      <div class="card-head">
+        <span class="eyebrow red">Daily Task</span>
+        <span class="daily-date" id="dailyDate"></span>
+      </div>
+      <div class="card-body">
+        <div class="deadline-block" id="deadlineBlock"></div>
+
+        <div class="section">
+          <div class="sec-head"><span class="sec-tab tab-plan"></span><span class="sec-name">교무기획업무</span></div>
+          <div id="listPlan"></div>
+          <div class="add-wrap"><input class="input" data-sec="plan" placeholder="+ 할 일 추가"></div>
+        </div>
+
+        <div class="section">
+          <div class="sec-head"><span class="sec-tab tab-class"></span><span class="sec-name">수업업무</span></div>
+          <div id="listClass"></div>
+          <div class="add-wrap"><input class="input" data-sec="class" placeholder="+ 할 일 추가"></div>
+        </div>
+
+        <div class="section">
+          <div class="sec-head"><span class="sec-tab tab-personal"></span><span class="sec-name">개인업무</span></div>
+          <div id="listPersonal"></div>
+          <div class="add-wrap"><input class="input" data-sec="personal" placeholder="+ 할 일 추가"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <span class="eyebrow">Quick Memo</span>
+        <span class="head-sub" id="memoDate"></span>
+      </div>
+      <div class="card-body" style="display:flex;padding-bottom:14px;">
+        <textarea class="area memo-area" id="memoArea" placeholder="이 날짜의 메모... (날짜를 클릭하면 그 날의 메모가 보입니다)"></textarea>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== 우측 ===== -->
+  <div class="col col-right">
+    <section class="card">
+      <div class="card-head"><span class="eyebrow blue">Today's Wisdom</span></div>
+      <div class="card-body">
+        <div class="wisdom-text" id="wisdomText"></div>
+        <div class="wisdom-sub" id="wisdomSub"></div>
+        <button class="wisdom-more" id="wisdomMore">다른 문장 ↻</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><span class="eyebrow blue">Useful Links</span></div>
+      <div class="card-body">
+        <div id="linkList"></div>
+        <div class="add-wrap">
+          <div class="add-line" style="flex-direction:column;gap:7px;">
+            <input class="input" id="linkName" placeholder="이름 (예: 나이스)">
+            <input class="input" id="linkUrl" placeholder="주소 (예: www.neis.go.kr) 후 Enter">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><span class="eyebrow blue">News</span><span class="head-sub">네이버 뉴스</span></div>
+      <div class="card-body" id="newsList"></div>
+    </section>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 저장소 ---------- */
+  var KEY="planner_v1";
+  var db=load();
+  function load(){
+    try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):seed();}catch(e){return seed();}
+  }
+  function seed(){return{daily:{},weekly:{},memo:{},links:[],books:[]};}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+  function uid(){return "i"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+
+  /* ---------- 날짜 유틸 ---------- */
+  function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function parseISO(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+  function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+  function monday(d){var x=new Date(d);var g=x.getDay();x.setDate(x.getDate()+(g===0?-6:1-g));x.setHours(0,0,0,0);return x;}
+  function md(d){return (d.getMonth()+1)+"/"+d.getDate();}
+  var DOW=["일","월","화","수","목","금","토"];
+
+  var today=new Date(); today.setHours(0,0,0,0);
+  var selected=new Date(today);
+  var viewMonth=new Date(today.getFullYear(),today.getMonth(),1);
+  var viewWeek=monday(today);
+
+  /* ---------- 달력 ---------- */
+  function renderCalendar(){
+    document.getElementById("calTitle").innerHTML=viewMonth.getFullYear()+"년 "+(viewMonth.getMonth()+1)+"월 <span>"+
+      ["January","February","March","April","May","June","July","August","September","October","November","December"][viewMonth.getMonth()]+"</span>";
+    var grid=document.getElementById("calGrid"); grid.innerHTML="";
+    DOW.forEach(function(n,i){
+      var c=document.createElement("div");
+      c.className="cal-dow"+(i===0?" sun":i===6?" sat":"");
+      c.textContent=n; grid.appendChild(c);
+    });
+    var first=new Date(viewMonth.getFullYear(),viewMonth.getMonth(),1);
+    var startBlank=first.getDay();
+    var days=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
+    for(var b=0;b<startBlank;b++){var e=document.createElement("div");e.className="cal-cell empty";grid.appendChild(e);}
+    for(var dnum=1;dnum<=days;dnum++){
+      (function(dnum){
+        var date=new Date(viewMonth.getFullYear(),viewMonth.getMonth(),dnum);
+        var key=iso(date);
+        var dowIdx=date.getDay();
+        var cell=document.createElement("div");
+        cell.className="cal-cell"+(dowIdx===0?" sun":dowIdx===6?" sat":"");
+        if(key===iso(today)) cell.classList.add("today");
+        if(key===iso(selected)) cell.classList.add("selected");
+        cell.textContent=dnum;
+        var memo=db.memo[key];
+        if(memo&&memo.trim()){var dot=document.createElement("span");dot.className="memo-dot";cell.appendChild(dot);}
+        cell.onclick=function(){ selected=date; viewWeek=monday(date); renderAll(); };
+        grid.appendChild(cell);
+      })(dnum);
+    }
+  }
+
+  /* ---------- 위클리 ---------- */
+  function weekKey(){return iso(viewWeek);}
+  function renderWeekly(){
+    var end=addDays(viewWeek,6);
+    document.getElementById("weekRange").textContent=md(viewWeek)+" – "+md(end);
+    var list=document.getElementById("weeklyList"); list.innerHTML="";
+    var arr=db.weekly[weekKey()]||[];
+    if(arr.length===0){list.innerHTML='<div class="empty-hint">이번 주 할 일이 없습니다.</div>';}
+    var rerender=function(){renderWeekly();renderDaily();};
+    arr.forEach(function(t){
+      var row=document.createElement("div"); row.className="row"; row.setAttribute("data-id",t.id);
+      var cb=document.createElement("span"); cb.className="cbox"+(t.done?" on":"");
+      cb.onclick=function(){t.done=!t.done;save();renderWeekly();renderDaily();};
+      var lb=document.createElement("span"); lb.className="label"+(t.done?" done":""); lb.textContent=t.text;
+      row.appendChild(cb); row.appendChild(lb);
+      if(t.due){var due=document.createElement("span"); due.className="due"; due.textContent=md(parseISO(t.due)); row.appendChild(due);}
+      var del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="삭제";
+      del.onclick=function(){db.weekly[weekKey()]=arr.filter(function(x){return x.id!==t.id;});save();renderWeekly();renderDaily();renderCalendar();};
+      row.appendChild(del);
+      wireDrag(row,arr,list,rerender);
+      list.appendChild(row);
+    });
+  }
+  function addWeekly(){
+    var inp=document.getElementById("weekInput"); var dueInp=document.getElementById("weekDue");
+    var txt=inp.value.trim(); if(!txt)return;
+    if(!db.weekly[weekKey()]) db.weekly[weekKey()]=[];
+    db.weekly[weekKey()].push({id:uid(),text:txt,due:dueInp.value||"",done:false});
+    inp.value=""; dueInp.value=""; save(); renderWeekly(); renderDaily(); renderCalendar();
+  }
+
+  /* ---------- 데일리 ---------- */
+  function dailyData(){
+    var k=iso(selected);
+    if(!db.daily[k]) db.daily[k]={plan:[],class:[],personal:[]};
+    return db.daily[k];
+  }
+  function deadlineItems(){
+    var k=iso(selected); var out=[];
+    Object.keys(db.weekly).forEach(function(wk){
+      db.weekly[wk].forEach(function(t){ if(t.due===k) out.push({task:t,week:wk}); });
+    });
+    return out;
+  }
+  function renderDaily(){
+    document.getElementById("dailyDate").textContent=
+      selected.getFullYear()+" · "+String(selected.getMonth()+1).padStart(2,"0")+" · "+String(selected.getDate()).padStart(2,"0")+" ("+DOW[selected.getDay()]+")";
+    var db_=dailyData();
+    /* 마감 자동 표시 */
+    var dl=document.getElementById("deadlineBlock"); dl.innerHTML="";
+    var items=deadlineItems();
+    items.forEach(function(o){
+      var row=document.createElement("div"); row.className="row";
+      var cb=document.createElement("span"); cb.className="cbox"+(o.task.done?" on":"");
+      cb.onclick=function(){o.task.done=!o.task.done;save();renderDaily();renderWeekly();};
+      var lb=document.createElement("span"); lb.className="label"+(o.task.done?" done":""); lb.textContent=o.task.text;
+      var badge=document.createElement("span"); badge.className="badge-due"; badge.textContent="마감";
+      row.appendChild(cb); row.appendChild(lb); row.appendChild(badge);
+      dl.appendChild(row);
+    });
+    renderSection("plan","listPlan",db_);
+    renderSection("class","listClass",db_);
+    renderSection("personal","listPersonal",db_);
+  }
+  var dragEl=null, dragHome=null;
+  function getAfter(container,y){
+    var rows=Array.prototype.slice.call(container.querySelectorAll(".row:not(.dragging)"));
+    var closest=null, closestOff=-Infinity;
+    rows.forEach(function(r){
+      var box=r.getBoundingClientRect(); var off=y-(box.top+box.height/2);
+      if(off<0 && off>closestOff){closestOff=off; closest=r;}
+    });
+    return closest;
+  }
+  function reorderFromDom(container,arr){
+    var ids=Array.prototype.slice.call(container.querySelectorAll(".row")).map(function(r){return r.getAttribute("data-id");});
+    arr.sort(function(a,b){return ids.indexOf(a.id)-ids.indexOf(b.id);});
+  }
+  function attachSortable(container){
+    if(!container) return;
+    container.addEventListener("dragover",function(e){
+      if(!dragEl || dragHome!==container) return;
+      e.preventDefault();
+      var after=getAfter(container,e.clientY);
+      if(after==null) container.appendChild(dragEl); else container.insertBefore(dragEl,after);
+    });
+  }
+  function wireDrag(row,arr,container,rerender){
+    row.setAttribute("draggable","true");
+    row.addEventListener("dragstart",function(e){
+      dragEl=row; dragHome=container; row.classList.add("dragging");
+      if(e.dataTransfer){e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain","");}catch(_){}}
+    });
+    row.addEventListener("dragend",function(){
+      row.classList.remove("dragging"); reorderFromDom(container,arr); save();
+      dragEl=null; dragHome=null; rerender();
+    });
+  }
+  function pickDate(defISO,cb){
+    var inp=document.createElement("input"); inp.type="date"; inp.value=defISO||"";
+    inp.style.position="fixed"; inp.style.left="-9999px"; inp.style.top="0";
+    document.body.appendChild(inp);
+    var done=false;
+    function cleanup(){if(inp.parentNode)inp.parentNode.removeChild(inp);}
+    inp.addEventListener("change",function(){done=true;var v=inp.value;cleanup();if(v)cb(v);});
+    inp.addEventListener("blur",function(){setTimeout(function(){if(!done)cleanup();},150);});
+    try{ if(typeof inp.showPicker==="function"){inp.showPicker();} else {throw 0;} }
+    catch(e){ cleanup(); var pv=prompt("옮길 날짜 (YYYY-MM-DD)",defISO||""); if(pv)cb(pv.trim()); }
+  }
+  function moveDailyToDate(sec,t){
+    pickDate(iso(selected),function(v){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){return;}
+      var cur=dailyData()[sec]; var idx=cur.indexOf(t); if(idx<0)return;
+      var item=cur.splice(idx,1)[0];
+      if(!db.daily[v]) db.daily[v]={plan:[],class:[],personal:[]};
+      if(!db.daily[v][sec]) db.daily[v][sec]=[];
+      db.daily[v][sec].push(item);
+      save(); renderDaily();
+    });
+  }
+  function renderSection(sec,elId,db_){
+    var el=document.getElementById(elId); el.innerHTML="";
+    var arr=db_[sec];
+    var rerender=function(){renderSection(sec,elId,db_);};
+    arr.forEach(function(t){
+      var row=document.createElement("div"); row.className="row"; row.setAttribute("data-id",t.id);
+      var cb=document.createElement("span"); cb.className="cbox"+(t.done?" on":"");
+      cb.onclick=function(){t.done=!t.done;save();rerender();};
+      var lb=document.createElement("span"); lb.className="label"+(t.done?" done":""); lb.textContent=t.text;
+      var mv=document.createElement("button"); mv.className="ctrl move"; mv.textContent="이동"; mv.title="다른 날짜로 이동";
+      mv.onclick=function(){moveDailyToDate(sec,t);};
+      var del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="삭제";
+      del.onclick=function(){db_[sec]=db_[sec].filter(function(x){return x.id!==t.id;});save();rerender();};
+      row.appendChild(cb); row.appendChild(lb); row.appendChild(mv); row.appendChild(del);
+      wireDrag(row,arr,el,rerender);
+      el.appendChild(row);
+    });
+  }
+  function addDaily(sec,inp){
+    var txt=inp.value.trim(); if(!txt)return;
+    dailyData()[sec].push({id:uid(),text:txt,done:false});
+    inp.value=""; save(); renderDaily();
+  }
+
+  /* ---------- 메모 ---------- */
+  function renderMemo(){
+    var k=iso(selected);
+    document.getElementById("memoDate").textContent=md(selected)+" ("+DOW[selected.getDay()]+")";
+    document.getElementById("memoArea").value=db.memo[k]||"";
+  }
+
+  /* ---------- Useful Links ---------- */
+  function normUrl(u){ if(!/^https?:\/\//i.test(u)) return "https://"+u; return u; }
+  function renderLinks(){
+    var el=document.getElementById("linkList"); el.innerHTML="";
+    if(db.links.length===0){el.innerHTML='<div class="empty-hint">자주 가는 사이트를 등록하세요.</div>';}
+    db.links.forEach(function(l){
+      var row=document.createElement("div"); row.className="link-row";
+      var a=document.createElement("a"); a.className="link-a"; a.href=normUrl(l.url); a.target="_blank"; a.rel="noopener";
+      a.innerHTML='<span class="link-dot"></span>'; var span=document.createElement("span"); span.textContent=l.name||l.url; a.appendChild(span);
+      var del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="삭제";
+      del.onclick=function(){db.links=db.links.filter(function(x){return x.id!==l.id;});save();renderLinks();};
+      row.appendChild(a); row.appendChild(del); el.appendChild(row);
+    });
+  }
+  function addLink(){
+    var n=document.getElementById("linkName"); var u=document.getElementById("linkUrl");
+    var url=u.value.trim(); if(!url)return;
+    db.links.push({id:uid(),name:n.value.trim()||url,url:url});
+    n.value=""; u.value=""; save(); renderLinks();
+  }
+
+  /* ---------- News (네이버 뉴스 바로가기) ---------- */
+  var NEWS=[
+    {n:"정치",u:"https://news.naver.com/section/100"},
+    {n:"경제",u:"https://news.naver.com/section/101"},
+    {n:"사회",u:"https://news.naver.com/section/102"}
+  ];
+  function renderNews(){
+    var el=document.getElementById("newsList"); el.innerHTML="";
+    NEWS.forEach(function(x){
+      var a=document.createElement("a"); a.className="news-a"; a.href=x.u; a.target="_blank"; a.rel="noopener";
+      a.innerHTML='<span>'+x.n+'</span><span class="news-arrow">↗</span>';
+      el.appendChild(a);
+    });
+  }
+
+  /* ---------- Book N Book ---------- */
+  function renderBooks(){
+    var el=document.getElementById("bookList"); el.innerHTML="";
+    if(db.books.length===0){el.innerHTML='<div class="empty-hint">감명 깊은 구절을 기록하세요.</div>';}
+    db.books.slice().reverse().forEach(function(bk){
+      var item=document.createElement("div"); item.className="book-item";
+      var top=document.createElement("div"); top.className="book-top";
+      var t=document.createElement("span"); t.className="book-title"; t.textContent=bk.title;
+      var p=document.createElement("span"); p.className="book-page"; p.textContent=bk.page?("p."+bk.page):"";
+      top.appendChild(t); top.appendChild(p);
+      var q=document.createElement("div"); q.className="book-quote"; q.textContent="“"+bk.quote+"”";
+      var dt=document.createElement("div"); dt.className="book-date";
+      var when=document.createElement("span"); when.textContent=bk.date;
+      var del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="삭제"; del.style.opacity="1";
+      del.onclick=function(){db.books=db.books.filter(function(x){return x.id!==bk.id;});save();renderBooks();};
+      dt.appendChild(when); dt.appendChild(del);
+      item.appendChild(top); item.appendChild(q); item.appendChild(dt);
+      el.appendChild(item);
+    });
+  }
+  function addBook(){
+    var t=document.getElementById("bookTitle"); var p=document.getElementById("bookPage"); var q=document.getElementById("bookQuote");
+    var title=t.value.trim(), quote=q.value.trim();
+    if(!title||!quote){return;}
+    db.books.push({id:uid(),title:title,page:p.value.trim(),quote:quote,date:iso(today)});
+    t.value="";p.value="";q.value=""; save(); renderBooks();
+  }
+
+  /* ---------- Today's Wisdom ---------- */
+  var WISDOM=[
+    {t:"온고지신 (溫故知新)",s:"옛것을 익히고 그것을 미루어 새것을 안다."},
+    {t:"교학상장 (敎學相長)",s:"가르치고 배우면서 서로 성장한다."},
+    {t:"절차탁마 (切磋琢磨)",s:"학문과 덕행을 끊임없이 갈고닦는다."},
+    {t:"대기만성 (大器晩成)",s:"큰 그릇은 늦게 이루어진다."},
+    {t:"우공이산 (愚公移山)",s:"쉬지 않고 노력하면 큰일도 이룬다."},
+    {t:"형설지공 (螢雪之功)",s:"어려운 가운데서도 부지런히 공부해 이룬 보람."},
+    {t:"위편삼절 (韋編三絶)",s:"책을 여러 번 읽어 끈이 세 번 끊어지다 — 꾸준한 학습."},
+    {t:"불치하문 (不恥下問)",s:"아랫사람에게 묻는 것을 부끄러워하지 않는다."},
+    {t:"적토성산 (積土成山)",s:"작은 흙이 쌓여 큰 산을 이룬다."},
+    {t:"유비무환 (有備無患)",s:"미리 준비가 되어 있으면 근심이 없다."},
+    {t:"과유불급 (過猶不及)",s:"지나친 것은 모자란 것과 같다."},
+    {t:"시종여일 (始終如一)",s:"처음부터 끝까지 한결같다."},
+    {t:"일일삼성 (一日三省)",s:"하루에 세 번 자신을 돌아본다."},
+    {t:"천 리 길도 한 걸음부터.",s:"무슨 일이든 시작이 중요하다 — 우리 속담."},
+    {t:"배우기만 하고 생각하지 않으면 얻는 것이 없고, 생각만 하고 배우지 않으면 위태롭다.",s:"공자, 『논어』 위정편"},
+    {t:"교육은 세상을 바꾸는 데 쓸 수 있는 가장 강력한 무기다.",s:"넬슨 만델라"},
+    {t:"아는 것이 힘이다.",s:"프랜시스 베이컨"},
+    {t:"낙숫물이 댓돌을 뚫는다.",s:"작은 노력도 꾸준하면 큰 결과를 낸다 — 우리 속담."},
+    {t:"등고자비 (登高自卑)",s:"높은 곳에 오르려면 낮은 곳에서부터 시작한다."},
+    {t:"마부작침 (磨斧作針)",s:"도끼를 갈아 바늘을 만든다 — 끈기."},
+    {t:"수적천석 (水滴穿石)",s:"작은 물방울이 바위를 뚫는다."},
+    {t:"역지사지 (易地思之)",s:"처지를 바꾸어 상대의 입장에서 생각한다."},
+    {t:"호학근행 (好學近行)",s:"배움을 좋아하고 힘써 실천한다."},
+    {t:"청출어람 (靑出於藍)",s:"제자나 후배가 스승이나 선배보다 뛰어나다."}
+  ];
+  function dayOfYear(d){var s=new Date(d.getFullYear(),0,0);return Math.floor((d-s)/86400000);}
+  var wisdomIdx=dayOfYear(today)%WISDOM.length;
+  function renderWisdom(){
+    var w=WISDOM[wisdomIdx];
+    document.getElementById("wisdomText").textContent=w.t;
+    document.getElementById("wisdomSub").textContent=w.s;
+  }
+
+  /* ---------- 렌더 묶음 ---------- */
+  function renderAll(){renderCalendar();renderWeekly();renderDaily();renderMemo();}
+
+  /* ---------- 이벤트 ---------- */
+  document.getElementById("calPrev").onclick=function(){viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1);renderCalendar();};
+  document.getElementById("calNext").onclick=function(){viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,1);renderCalendar();};
+  document.getElementById("weekPrev").onclick=function(){viewWeek=addDays(viewWeek,-7);renderWeekly();};
+  document.getElementById("weekNext").onclick=function(){viewWeek=addDays(viewWeek,7);renderWeekly();};
+  document.getElementById("weekInput").addEventListener("keydown",function(e){if(e.key==="Enter")addWeekly();});
+  document.getElementById("weekDue").addEventListener("keydown",function(e){if(e.key==="Enter")addWeekly();});
+  Array.prototype.forEach.call(document.querySelectorAll("input[data-sec]"),function(inp){
+    inp.addEventListener("keydown",function(e){if(e.key==="Enter")addDaily(inp.getAttribute("data-sec"),inp);});
+  });
+  document.getElementById("memoArea").addEventListener("input",function(e){
+    var k=iso(selected); db.memo[k]=e.target.value; save();
+  });
+  document.getElementById("memoArea").addEventListener("blur",function(){renderCalendar();});
+  document.getElementById("linkName").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("linkUrl").focus();});
+  document.getElementById("linkUrl").addEventListener("keydown",function(e){if(e.key==="Enter")addLink();});
+  document.getElementById("wisdomMore").onclick=function(){wisdomIdx=(wisdomIdx+1+Math.floor(Math.random()*(WISDOM.length-1)))%WISDOM.length;renderWisdom();};
+
+  /* ---------- 초기 ---------- */
+  attachSortable(document.getElementById("listPlan"));
+  attachSortable(document.getElementById("listClass"));
+  attachSortable(document.getElementById("listPersonal"));
+  attachSortable(document.getElementById("weeklyList"));
+  renderAll(); renderLinks(); renderNews(); renderWisdom();
+})();
+</script>
+</body>
+</html>
