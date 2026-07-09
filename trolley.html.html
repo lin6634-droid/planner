@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>트롤리 딜레마 — 5단계 윤리 시뮬레이션</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161b24;
+    --panel:#1f2632;
+    --panel-deep:#1a202b;
+    --line:#323c4c;
+    --rail:#7d8a9c;
+    --amber:#e6ae4f;
+    --red:#c95a50;
+    --green:#7aa886;
+    --pink:#d98fa0;
+    --paper:#ede7da;
+    --muted:#a2abba;
+    --serif:'Noto Serif KR', serif;
+    --sans:'Noto Sans KR', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--paper);
+    font-family:var(--sans);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 16px 60px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(230,174,79,0.06), transparent),
+      repeating-linear-gradient(90deg, transparent 0 79px, rgba(255,255,255,0.015) 79px 80px);
+  }
+  .wrap{width:100%;max-width:860px;}
+
+  /* ===== 상단 진행 표시 ===== */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:22px;gap:12px;flex-wrap:wrap;
+  }
+  .brand{
+    font-family:var(--serif);font-weight:700;font-size:1.05rem;
+    letter-spacing:0.06em;color:var(--paper);
+  }
+  .brand span{color:var(--amber);}
+  .progress{display:flex;gap:6px;align-items:center;}
+  .p-step{
+    width:32px;height:32px;border-radius:50%;
+    border:1.5px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.8rem;color:var(--muted);
+    font-family:var(--serif);font-weight:600;
+    transition:all .4s;
+  }
+  .p-step.active{border-color:var(--amber);color:var(--amber);box-shadow:0 0 14px rgba(230,174,79,0.35);}
+  .p-step.done{border-color:var(--green);color:var(--green);}
+  .p-line{width:14px;height:1.5px;background:var(--line);}
+
+  /* ===== 카드 공통 ===== */
+  .screen{display:none;animation:fadeUp .5s ease both;}
+  .screen.show{display:block;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:34px 34px 30px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+  }
+
+  .eyebrow{
+    display:inline-block;
+    font-size:0.75rem;letter-spacing:0.22em;color:var(--amber);
+    border:1px solid rgba(230,174,79,0.4);border-radius:999px;
+    padding:5px 14px;margin-bottom:16px;
+  }
+  .eyebrow.deep{color:var(--pink);border-color:rgba(217,143,160,0.4);}
+  h1,h2{font-family:var(--serif);line-height:1.35;}
+  h1{font-size:2rem;margin-bottom:14px;}
+  h2{font-size:1.5rem;margin-bottom:12px;}
+  .lede{color:var(--muted);line-height:1.85;font-size:0.98rem;}
+
+  /* ===== 인트로 ===== */
+  #intro .card{text-align:center;padding:52px 40px;}
+  #intro .lede{max-width:560px;margin:0 auto 30px;}
+  .rules{
+    display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:34px;
+  }
+  .rule{
+    background:var(--panel-deep);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;font-size:0.82rem;color:var(--muted);width:150px;line-height:1.6;
+  }
+  .rule b{display:block;color:var(--paper);font-family:var(--serif);margin-bottom:4px;font-size:0.92rem;}
+
+  /* ===== 상황 서술 ===== */
+  .situation{
+    background:var(--panel-deep);
+    border-left:3px solid var(--amber);
+    border-radius:0 10px 10px 0;
+    padding:18px 22px;margin:20px 0 8px;
+  }
+  .situation.deep{border-left-color:var(--pink);}
+  .situation li{
+    list-style:none;color:var(--paper);line-height:1.9;font-size:0.95rem;
+    padding-left:18px;position:relative;
+  }
+  .situation li::before{
+    content:"";position:absolute;left:0;top:0.85em;
+    width:6px;height:6px;border-radius:50%;background:var(--rail);
+  }
+
+  /* ===== 5단계 상황 레이아웃 ===== */
+  .s5-note{padding:14px 20px;}
+  .s5-note p{color:var(--paper);line-height:1.9;font-size:0.93rem;}
+  .s5-note b{color:var(--pink);}
+  .vs-wrap{margin:16px 0 4px;}
+  .vs-panel{
+    background:var(--panel-deep);border:1px solid var(--line);
+    border-radius:12px;padding:16px 18px;
+  }
+  .vs-panel.main{border-color:rgba(139,147,163,0.45);}
+  .vs-panel.side{border-color:rgba(230,174,79,0.45);}
+  .vs-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .vs-track{
+    font-size:0.68rem;letter-spacing:0.16em;border:1px solid;border-radius:999px;
+    padding:3px 10px;font-family:var(--sans);
+  }
+  .vs-panel.main .vs-track{color:var(--rail);border-color:rgba(139,147,163,0.5);}
+  .vs-panel.side .vs-track{color:var(--amber);border-color:rgba(230,174,79,0.5);}
+  .vs-head b{font-family:var(--serif);font-size:1rem;}
+  .vs-fate{margin-left:auto;font-size:0.78rem;color:var(--red);white-space:nowrap;}
+  .vs-people{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;}
+  .pcard{
+    background:rgba(255,255,255,0.02);border:1px solid var(--line);
+    border-radius:10px;padding:12px 8px 10px;text-align:center;
+  }
+  .pcard svg{width:42px;height:42px;margin:0 auto 6px;display:block;}
+  .pcard b{display:block;font-size:0.82rem;font-family:var(--serif);margin-bottom:3px;}
+  .pcard span{display:block;font-size:0.71rem;color:var(--muted);line-height:1.5;}
+  .vs-divider{
+    display:flex;align-items:center;gap:12px;margin:10px 0;
+    color:var(--muted);font-size:0.75rem;letter-spacing:0.08em;
+  }
+  .vs-divider::before,.vs-divider::after{content:"";flex:1;height:1px;background:var(--line);}
+  .heir-card{display:flex;gap:16px;align-items:center;}
+  .heir-card svg{width:54px;height:54px;flex-shrink:0;}
+  .heir-card p{color:var(--paper);font-size:0.88rem;line-height:1.7;}
+  .heir-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .heir-chip{
+    font-size:0.72rem;color:var(--amber);
+    border:1px solid rgba(230,174,79,0.4);border-radius:999px;padding:3px 10px;
+  }
+  @media (max-width:640px){
+    .vs-fate{margin-left:0;width:100%;}
+  }
+
+  /* ===== 선로 SVG ===== */
+  .scene{
+    margin:22px 0;
+    background:#12161e;
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .scene svg{display:block;width:100%;height:auto;}
+  .label-svg{font-family:var(--sans);font-size:13px;fill:var(--muted);}
+
+  /* ===== 선택 버튼 ===== */
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+  .choices.reasons{grid-template-columns:1fr;}
+  @media (max-width:640px){.choices{grid-template-columns:1fr;}}
+  .choice{
+    background:var(--panel-deep);
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:20px 20px 18px;
+    cursor:pointer;text-align:left;
+    color:var(--paper);font-family:var(--sans);
+    transition:border-color .25s, transform .15s, box-shadow .25s;
+  }
+  .choice:hover{transform:translateY(-2px);}
+  .choice:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+  .choice .tag{
+    font-size:0.72rem;letter-spacing:0.14em;margin-bottom:8px;display:block;
+  }
+  .choice.act .tag{color:var(--red);}
+  .choice.omit .tag{color:var(--rail);}
+  .choice.reason .tag{color:var(--pink);}
+  .choice.act:hover{border-color:var(--red);box-shadow:0 8px 24px rgba(201,90,80,0.18);}
+  .choice.omit:hover{border-color:var(--rail);box-shadow:0 8px 24px rgba(125,138,156,0.15);}
+  .choice.reason:hover{border-color:var(--pink);box-shadow:0 8px 24px rgba(217,143,160,0.15);}
+  .choice b{font-family:var(--serif);font-size:1.05rem;display:block;margin-bottom:6px;}
+  .choice small{color:var(--muted);line-height:1.6;display:block;font-size:0.84rem;}
+  .choice:disabled{opacity:0.35;cursor:default;transform:none;}
+
+  /* ===== 결과 ===== */
+  .result-box{
+    border-radius:12px;padding:22px 24px;margin-bottom:18px;
+    border:1px solid var(--line);background:var(--panel-deep);
+  }
+  .result-box .verdict{
+    font-family:var(--serif);font-size:1.2rem;margin-bottom:8px;
+  }
+  .verdict.act{color:var(--red);}
+  .verdict.omit{color:var(--rail);}
+  .result-box p{color:var(--muted);line-height:1.85;font-size:0.94rem;}
+  .result-box .ex-line{
+    margin-top:12px;padding:10px 14px;
+    background:rgba(230,174,79,0.07);
+    border-radius:8px;
+    color:var(--paper);font-size:0.88rem;line-height:1.75;
+  }
+
+  .compare{
+    background:rgba(217,143,160,0.06);
+    border:1px solid rgba(217,143,160,0.3);
+    border-radius:12px;padding:20px 24px;margin-bottom:18px;
+  }
+  .compare h3{font-family:var(--serif);color:var(--pink);font-size:0.98rem;margin-bottom:10px;}
+  .compare p{color:var(--paper);line-height:1.85;font-size:0.92rem;}
+
+  .ethics{
+    background:rgba(230,174,79,0.05);
+    border:1px solid rgba(230,174,79,0.25);
+    border-radius:12px;padding:20px 24px;margin-bottom:24px;
+  }
+  .ethics h3{
+    font-family:var(--serif);color:var(--amber);font-size:1rem;
+    margin-bottom:12px;letter-spacing:0.05em;
+  }
+  .ethics li{
+    list-style:none;color:var(--paper);line-height:1.85;font-size:0.93rem;
+    padding-left:20px;position:relative;margin-bottom:6px;
+  }
+  .ethics li::before{content:"?";position:absolute;left:2px;color:var(--amber);font-family:var(--serif);}
+
+  .theory{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;}
+  .theory-chip{
+    font-size:0.8rem;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);color:var(--muted);
+  }
+  .theory-chip.hit{border-color:var(--green);color:var(--green);}
+
+  /* ===== 버튼 ===== */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--amber);color:#1c1608;
+    border:none;border-radius:999px;
+    font-family:var(--sans);font-weight:700;font-size:0.95rem;
+    padding:13px 32px;cursor:pointer;
+    transition:transform .15s, box-shadow .25s;
+    box-shadow:0 6px 20px rgba(230,174,79,0.25);
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(230,174,79,0.35);}
+  .btn:focus-visible{outline:2px solid var(--paper);outline-offset:3px;}
+
+  /* ===== 최종 요약 ===== */
+  .summary-grid{display:grid;gap:12px;margin:22px 0;}
+  .sum-item{
+    display:flex;align-items:center;gap:16px;
+    background:var(--panel-deep);border:1px solid var(--line);
+    border-radius:10px;padding:16px 20px;
+  }
+  .sum-num{
+    font-family:var(--serif);font-weight:700;font-size:1.3rem;
+    color:var(--amber);width:34px;text-align:center;flex-shrink:0;
+  }
+  .sum-item .txt b{font-size:0.95rem;display:block;margin-bottom:3px;}
+  .sum-item .txt small{color:var(--muted);font-size:0.83rem;line-height:1.5;display:block;}
+  .sum-badge{
+    margin-left:auto;font-size:0.76rem;padding:5px 12px;border-radius:999px;
+    flex-shrink:0;
+  }
+  .sum-badge.act{border:1px solid var(--red);color:var(--red);}
+  .sum-badge.omit{border:1px solid var(--rail);color:var(--rail);}
+
+  .tendency{
+    background:rgba(122,168,134,0.06);
+    border:1px solid rgba(122,168,134,0.3);
+    border-radius:12px;padding:22px 24px;margin-bottom:18px;
+  }
+  .tendency h3{font-family:var(--serif);color:var(--green);margin-bottom:10px;font-size:1.05rem;}
+  .tendency p{color:var(--paper);line-height:1.85;font-size:0.93rem;}
+  .caveat{color:var(--muted);font-size:0.8rem;line-height:1.7;margin-top:10px;}
+
+  .shift{
+    background:rgba(217,143,160,0.06);
+    border:1px solid rgba(217,143,160,0.3);
+    border-radius:12px;padding:22px 24px;margin-bottom:22px;
+  }
+  .shift h3{font-family:var(--serif);color:var(--pink);margin-bottom:10px;font-size:1.05rem;}
+  .shift p{color:var(--paper);line-height:1.85;font-size:0.92rem;margin-bottom:10px;}
+  .shift p:last-child{margin-bottom:0;}
+
+  /* ===== 학습지 기록용 유형 박스 ===== */
+  .record-box{
+    background:rgba(230,174,79,0.08);
+    border:1.5px solid var(--amber);
+    border-radius:12px;padding:22px 24px;margin:22px 0 6px;
+    text-align:center;
+  }
+  .record-box .label{
+    font-size:0.74rem;letter-spacing:0.18em;color:var(--amber);
+    display:block;margin-bottom:10px;
+  }
+  .record-box .type{
+    font-family:var(--serif);font-size:1.45rem;color:var(--paper);
+    display:block;margin-bottom:8px;line-height:1.4;
+  }
+  .record-box .count{color:var(--muted);font-size:0.88rem;display:block;line-height:1.6;}
+  .record-note{
+    color:var(--muted);font-size:0.8rem;text-align:center;
+    margin-bottom:18px;line-height:1.6;
+  }
+
+  /* ===== 배너(터치) + 토론 준비 패널 ===== */
+  .sum-hint{color:var(--amber);font-size:0.82rem;margin:2px 0 10px;line-height:1.6;}
+  button.sum-item{
+    width:100%;text-align:left;font-family:var(--sans);color:var(--paper);
+    cursor:pointer;transition:border-color .2s, background .2s, transform .15s;
+  }
+  button.sum-item:hover{border-color:var(--amber);transform:translateY(-1px);}
+  button.sum-item:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+  button.sum-item.open{border-color:var(--amber);background:rgba(230,174,79,0.06);}
+  .sum-item .tap{
+    margin-left:12px;flex-shrink:0;color:var(--amber);font-size:0.78rem;
+    transition:transform .2s;display:inline-block;
+  }
+  .sum-item.open .tap{transform:rotate(180deg);}
+
+  .debate-panel{display:none;margin:8px 0 4px;padding:20px 22px;
+    border:1px solid rgba(230,174,79,0.35);border-radius:12px;
+    background:var(--panel-deep);
+  }
+  .debate-panel.show{display:block;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+  .dp-topic{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .dp-topic span{
+    font-size:0.72rem;letter-spacing:0.16em;color:var(--amber);display:block;margin-bottom:8px;
+  }
+  .dp-topic p{
+    font-family:var(--serif);font-size:1.05rem;color:var(--paper);line-height:1.7;
+  }
+  .dp-sec{margin-bottom:14px;}
+  .dp-sec h4{
+    font-size:0.85rem;color:var(--paper);margin-bottom:8px;
+    font-family:var(--serif);letter-spacing:0.03em;
+  }
+  .dp-sec li{
+    list-style:none;color:var(--muted);line-height:1.8;font-size:0.88rem;
+    padding-left:18px;position:relative;margin-bottom:5px;
+  }
+  .dp-sec li::before{content:"—";position:absolute;left:0;color:var(--amber);}
+  .dp-sec.counter h4{color:var(--pink);}
+  .dp-sec.counter li::before{color:var(--pink);}
+  .dp-sec.case h4{color:var(--green);}
+  .dp-sec.case li::before{color:var(--green);}
+  .dp-note{color:#5b6474;font-size:0.78rem;line-height:1.6;margin-top:12px;}
+
+  /* 딜레마 전제 (그림 포함) */
+  .dp-premise{
+    display:flex;gap:16px;align-items:center;
+    background:rgba(125,138,156,0.08);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;margin-bottom:16px;
+  }
+  .dp-premise .ptxt{flex:1;}
+  .dp-premise .ptxt span{
+    font-size:0.7rem;letter-spacing:0.16em;color:var(--rail);display:block;margin-bottom:6px;
+  }
+  .dp-premise .ptxt p{color:var(--paper);font-size:0.87rem;line-height:1.75;}
+  .dp-premise svg{width:140px;flex-shrink:0;display:block;}
+
+  /* 상대편에게 던질 반문 */
+  .dp-sec.attack h4{color:var(--amber);}
+  .dp-sec.attack li::before{content:"→";color:var(--amber);}
+
+  /* 철학자 카드 */
+  .dp-phil{margin-top:16px;}
+  .dp-phil > h4{
+    font-size:0.85rem;color:var(--paper);margin-bottom:10px;
+    font-family:var(--serif);letter-spacing:0.03em;
+  }
+  .phil-row{display:flex;gap:10px;}
+  .phil-card{
+    flex:1;display:flex;gap:12px;align-items:center;
+    border-radius:10px;padding:12px 14px;
+  }
+  .phil-card.act{border:1px solid rgba(201,90,80,0.45);background:rgba(201,90,80,0.06);}
+  .phil-card.omit{border:1px solid rgba(125,138,156,0.5);background:rgba(125,138,156,0.07);}
+  .phil-card svg{width:46px;height:46px;flex-shrink:0;}
+  .phil-card .side{font-size:0.68rem;letter-spacing:0.1em;display:block;margin-bottom:3px;}
+  .phil-card.act .side{color:var(--red);}
+  .phil-card.omit .side{color:var(--rail);}
+  .phil-card b{font-family:var(--serif);font-size:0.95rem;display:block;margin-bottom:3px;}
+  .phil-card small{color:var(--muted);font-size:0.78rem;line-height:1.55;display:block;}
+
+  /* 뒤로가기 */
+  .back-link{
+    background:none;border:none;cursor:pointer;
+    font-family:var(--sans);font-size:0.82rem;color:var(--muted);
+    padding:0;margin-bottom:14px;display:inline-block;
+    transition:color .2s;
+  }
+  .back-link:hover{color:var(--amber);}
+  .back-link:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+  .btn.ghost{
+    background:transparent;color:var(--muted);
+    border:1px solid var(--line);box-shadow:none;
+  }
+  .btn.ghost:hover{color:var(--paper);border-color:var(--rail);box-shadow:none;}
+
+  .actions{display:flex;gap:12px;flex-wrap:wrap;}
+
+  footer{
+    text-align:center;color:#5b6474;font-size:0.75rem;margin-top:28px;line-height:1.7;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}
+  }
+  @media (max-width:640px){
+    .card{padding:24px 20px;}
+    h1{font-size:1.5rem;}
+    .rule{width:calc(50% - 8px);}
+    .sum-item{padding:14px 14px;gap:10px;}
+    .sum-num{width:26px;font-size:1.15rem;}
+    .debate-panel{padding:16px 16px;}
+    .record-box{padding:18px 16px;}
+    .record-box .type{font-size:1.25rem;}
+    .dp-premise{flex-direction:column;align-items:stretch;}
+    .dp-premise svg{width:100%;max-width:220px;margin:0 auto;}
+    .phil-row{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">TROLLEY <span>·</span> 윤리 시뮬레이션</div>
+    <div class="progress" aria-label="진행 단계">
+      <div class="p-step" id="ps1">1</div><div class="p-line"></div>
+      <div class="p-step" id="ps2">2</div><div class="p-line"></div>
+      <div class="p-step" id="ps3">3</div><div class="p-line"></div>
+      <div class="p-step" id="ps4">4</div><div class="p-line"></div>
+      <div class="p-step" id="ps5">5</div>
+    </div>
+  </div>
+
+  <!-- ================= 인트로 ================= -->
+  <section class="screen show" id="intro">
+    <div class="card">
+      <span class="eyebrow">THOUGHT EXPERIMENT</span>
+      <h1>트롤리 딜레마<br>다섯 번의 선택</h1>
+      <p class="lede">
+        브레이크가 고장 난 트롤리 앞에서, 당신은 다섯 번의 결정을 내리게 됩니다.
+        단계가 올라갈수록 딜레마는 깊어집니다.
+        정답은 없습니다. 다만 당신의 선택이 <b>어떤 윤리적 근거</b> 위에 서 있는지,
+        그리고 <b>조건이 바뀔 때 선택이 흔들리는지</b> 확인해 보십시오.
+      </p>
+      <div class="rules">
+        <div class="rule"><b>1단계</b>고전적 딜레마 — 레버</div>
+        <div class="rule"><b>2단계</b>의도된 희생 — 육교</div>
+        <div class="rule"><b>3단계</b>심화 — 그들은 누구인가</div>
+        <div class="rule"><b>4단계</b>책임과 신뢰 — 관제사</div>
+        <div class="rule"><b>5단계</b>심화 — 운과 생명의 무게</div>
+      </div>
+      <button class="btn" onclick="goStage(1)">시뮬레이션 시작</button>
+    </div>
+  </section>
+
+  <!-- ================= 1단계 ================= -->
+  <section class="screen" id="stage1">
+    <div class="card">
+      <span class="eyebrow">STAGE 1</span>
+      <h2>고전적인 트롤리 딜레마</h2>
+      <button type="button" class="back-link" onclick="showScreen('intro')">← 처음 화면으로</button>
+      <div class="situation"><ul>
+        <li>브레이크가 고장 난 트롤리가 선로를 따라 달려오고 있다.</li>
+        <li>현재 선로에는 5명이 묶여 있어 피할 수 없다.</li>
+        <li>당신 옆에는 선로를 바꿀 수 있는 레버가 있다.</li>
+        <li>레버를 당기면 트롤리는 다른 선로로 이동하지만, 그곳에는 1명이 묶여 있다.</li>
+      </ul></div>
+
+      <div class="scene">
+        <svg viewBox="0 0 800 340" id="svg1" aria-label="1단계 선로 상황도">
+          <g stroke="#4a5568" stroke-width="3">
+            <line x1="0" y1="196" x2="800" y2="196"/>
+            <line x1="0" y1="216" x2="800" y2="216"/>
+            <line x1="330" y1="196" x2="470" y2="96"/>
+            <line x1="358" y1="216" x2="498" y2="116"/>
+            <line x1="470" y1="96" x2="800" y2="96"/>
+            <line x1="498" y1="116" x2="800" y2="116"/>
+          </g>
+          <g stroke="#39435355" stroke-width="6">
+            <line x1="40" y1="192" x2="40" y2="220"/><line x1="110" y1="192" x2="110" y2="220"/>
+            <line x1="180" y1="192" x2="180" y2="220"/><line x1="250" y1="192" x2="250" y2="220"/>
+            <line x1="560" y1="192" x2="560" y2="220"/><line x1="640" y1="192" x2="640" y2="220"/>
+            <line x1="560" y1="92" x2="560" y2="120"/><line x1="640" y1="92" x2="640" y2="120"/>
+          </g>
+          <g id="lever1">
+            <circle cx="345" cy="262" r="7" fill="#39435c"/>
+            <line id="leverArm1" x1="345" y1="262" x2="325" y2="236" stroke="#e6ae4f" stroke-width="5" stroke-linecap="round"/>
+            <text x="345" y="290" text-anchor="middle" class="label-svg">레버</text>
+          </g>
+          <g id="trolley1">
+            <rect x="20" y="160" width="76" height="40" rx="8" fill="#c95a50"/>
+            <rect x="30" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <rect x="58" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <circle cx="40" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+            <circle cx="76" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+          </g>
+          <text x="58" y="150" text-anchor="middle" class="label-svg" fill="#c95a50">브레이크 고장</text>
+          <text x="710" y="250" text-anchor="middle" class="label-svg">본선 · 5명</text>
+          <text x="710" y="80" text-anchor="middle" class="label-svg">분기선 · 1명</text>
+        </svg>
+      </div>
+
+      <div class="choices">
+        <button class="choice omit" onclick="choose(1,'omit')">
+          <span class="tag">부작위 · 개입하지 않음</span>
+          <b>레버를 당기지 않는다</b>
+          <small>트롤리는 원래 선로로 달린다 → 5명이 사망한다.</small>
+        </button>
+        <button class="choice act" onclick="choose(1,'act')">
+          <span class="tag">작위 · 직접 개입</span>
+          <b>레버를 당긴다</b>
+          <small>트롤리가 분기선으로 이동한다 → 1명이 사망하고 5명이 살아남는다.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2단계 ================= -->
+  <section class="screen" id="stage2">
+    <div class="card">
+      <span class="eyebrow">STAGE 2</span>
+      <h2>의도된 희생의 딜레마</h2>
+      <button type="button" class="back-link" onclick="backTo(1)">← 1단계 다시 선택하기</button>
+      <div class="situation"><ul>
+        <li>트롤리가 5명을 향해 달려오고 있다.</li>
+        <li>이번에는 레버가 없으며, 당신은 육교 위에 있다.</li>
+        <li>당신 옆에는 몸집이 큰 사람이 서 있다.</li>
+        <li>그 사람을 밀어 떨어뜨리면 트롤리가 멈춰 5명이 살아남지만, 그 사람은 반드시 사망한다.</li>
+      </ul></div>
+
+      <div class="scene">
+        <svg viewBox="0 0 800 340" id="svg2" aria-label="2단계 육교 상황도">
+          <g stroke="#4a5568" stroke-width="3">
+            <line x1="0" y1="246" x2="800" y2="246"/>
+            <line x1="0" y1="266" x2="800" y2="266"/>
+          </g>
+          <g stroke="#39435355" stroke-width="6">
+            <line x1="60" y1="242" x2="60" y2="270"/><line x1="140" y1="242" x2="140" y2="270"/>
+            <line x1="220" y1="242" x2="220" y2="270"/><line x1="540" y1="242" x2="540" y2="270"/>
+            <line x1="620" y1="242" x2="620" y2="270"/>
+          </g>
+          <g>
+            <rect x="330" y="120" width="150" height="14" rx="4" fill="#39435c"/>
+            <rect x="336" y="134" width="12" height="118" fill="#39435c"/>
+            <rect x="462" y="134" width="12" height="118" fill="#39435c"/>
+            <line x1="330" y1="106" x2="480" y2="106" stroke="#4a5568" stroke-width="3"/>
+            <line x1="345" y1="106" x2="345" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <line x1="405" y1="106" x2="405" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <line x1="465" y1="106" x2="465" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <text x="405" y="92" text-anchor="middle" class="label-svg">육교</text>
+          </g>
+          <g id="trolley2">
+            <rect x="20" y="210" width="76" height="40" rx="8" fill="#c95a50"/>
+            <rect x="30" y="218" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <rect x="58" y="218" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <circle cx="40" cy="254" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+            <circle cx="76" cy="254" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+          </g>
+          <text x="58" y="200" text-anchor="middle" class="label-svg" fill="#c95a50">브레이크 고장</text>
+          <text x="680" y="300" text-anchor="middle" class="label-svg">선로 위 · 5명</text>
+          <text x="440" y="70" text-anchor="middle" class="label-svg" fill="#e6ae4f">몸집이 큰 사람</text>
+        </svg>
+      </div>
+
+      <div class="choices">
+        <button class="choice omit" onclick="choose(2,'omit')">
+          <span class="tag">부작위 · 개입하지 않음</span>
+          <b>밀지 않는다</b>
+          <small>트롤리는 그대로 달린다 → 5명이 사망한다.</small>
+        </button>
+        <button class="choice act" onclick="choose(2,'act')">
+          <span class="tag">작위 · 사람을 수단으로 사용</span>
+          <b>밀어 떨어뜨린다</b>
+          <small>트롤리가 멈춘다 → 1명이 사망하고 5명이 살아남는다.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3단계 (2단계 심화) ================= -->
+  <section class="screen" id="stage3">
+    <div class="card">
+      <span class="eyebrow deep">STAGE 3 · 심화</span>
+      <h2>그들은 누구인가 — 속성이 판단을 바꾸는가</h2>
+      <button type="button" class="back-link" onclick="backTo(2)">← 2단계 다시 선택하기</button>
+      <div class="situation deep"><ul>
+        <li>상황은 2단계와 완전히 동일하다. 당신은 육교 위에 있고, 옆에는 몸집이 큰 사람이 서 있다.</li>
+        <li>단, 이번에 선로 위의 5명은 <b>여러 차례 중범죄를 저지르고 복역 중인 범죄자 3명</b>과 <b>90세가 넘은 고령의 노인 2명</b>이다.</li>
+        <li>몸집이 큰 사람에 대한 정보는 없다. 그는 평범한 행인이다.</li>
+        <li>밀어 떨어뜨리면 그 사람이 사망하고 5명이 살아남는다. 밀지 않으면 5명이 사망한다.</li>
+      </ul></div>
+
+      <div class="scene">
+        <svg viewBox="0 0 800 340" id="svg3" aria-label="3단계 육교 심화 상황도">
+          <g stroke="#4a5568" stroke-width="3">
+            <line x1="0" y1="246" x2="800" y2="246"/>
+            <line x1="0" y1="266" x2="800" y2="266"/>
+          </g>
+          <g stroke="#39435355" stroke-width="6">
+            <line x1="60" y1="242" x2="60" y2="270"/><line x1="140" y1="242" x2="140" y2="270"/>
+            <line x1="220" y1="242" x2="220" y2="270"/><line x1="540" y1="242" x2="540" y2="270"/>
+            <line x1="620" y1="242" x2="620" y2="270"/>
+          </g>
+          <g>
+            <rect x="330" y="120" width="150" height="14" rx="4" fill="#39435c"/>
+            <rect x="336" y="134" width="12" height="118" fill="#39435c"/>
+            <rect x="462" y="134" width="12" height="118" fill="#39435c"/>
+            <line x1="330" y1="106" x2="480" y2="106" stroke="#4a5568" stroke-width="3"/>
+            <line x1="345" y1="106" x2="345" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <line x1="405" y1="106" x2="405" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <line x1="465" y1="106" x2="465" y2="120" stroke="#4a5568" stroke-width="2"/>
+            <text x="405" y="92" text-anchor="middle" class="label-svg">육교</text>
+          </g>
+          <g id="trolley3">
+            <rect x="20" y="210" width="76" height="40" rx="8" fill="#c95a50"/>
+            <rect x="30" y="218" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <rect x="58" y="218" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <circle cx="40" cy="254" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+            <circle cx="76" cy="254" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+          </g>
+          <text x="58" y="200" text-anchor="middle" class="label-svg" fill="#c95a50">브레이크 고장</text>
+          <text x="655" y="300" text-anchor="middle" class="label-svg">범죄자 3명 · 고령의 노인 2명</text>
+          <text x="440" y="70" text-anchor="middle" class="label-svg" fill="#e6ae4f">평범한 행인</text>
+        </svg>
+      </div>
+
+      <div class="choices">
+        <button class="choice omit" onclick="choose(3,'omit')">
+          <span class="tag">부작위 · 개입하지 않음</span>
+          <b>밀지 않는다</b>
+          <small>트롤리는 그대로 달린다 → 범죄자 3명과 노인 2명이 사망한다.</small>
+        </button>
+        <button class="choice act" onclick="choose(3,'act')">
+          <span class="tag">작위 · 사람을 수단으로 사용</span>
+          <b>밀어 떨어뜨린다</b>
+          <small>행인 1명이 사망한다 → 범죄자 3명과 노인 2명이 살아남는다.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 4단계 ================= -->
+  <section class="screen" id="stage4">
+    <div class="card">
+      <span class="eyebrow">STAGE 4</span>
+      <h2>책임과 신뢰가 결합된 딜레마</h2>
+      <button type="button" class="back-link" onclick="backTo(3)">← 3단계 다시 선택하기</button>
+      <div class="situation"><ul>
+        <li>당신은 철도 관제사다.</li>
+        <li>폭주하는 트롤리가 5명의 작업자를 향해 달려가고 있다.</li>
+        <li>선로를 바꾸면 1명의 작업자가 있는 선로로 이동한다.</li>
+        <li>그러나 그 1명은 <b>당신의 지시를 믿고</b> 안전한 선로에서 작업 중인 사람이다. 그는 당신의 안내를 신뢰했기 때문에 그곳에 있다.</li>
+      </ul></div>
+
+      <div class="scene">
+        <svg viewBox="0 0 800 340" id="svg4" aria-label="4단계 관제사 상황도">
+          <g stroke="#4a5568" stroke-width="3">
+            <line x1="0" y1="196" x2="800" y2="196"/>
+            <line x1="0" y1="216" x2="800" y2="216"/>
+            <line x1="330" y1="196" x2="470" y2="96"/>
+            <line x1="358" y1="216" x2="498" y2="116"/>
+            <line x1="470" y1="96" x2="800" y2="96"/>
+            <line x1="498" y1="116" x2="800" y2="116"/>
+          </g>
+          <g stroke="#39435355" stroke-width="6">
+            <line x1="40" y1="192" x2="40" y2="220"/><line x1="110" y1="192" x2="110" y2="220"/>
+            <line x1="180" y1="192" x2="180" y2="220"/><line x1="250" y1="192" x2="250" y2="220"/>
+            <line x1="560" y1="192" x2="560" y2="220"/><line x1="640" y1="192" x2="640" y2="220"/>
+            <line x1="560" y1="92" x2="560" y2="120"/><line x1="640" y1="92" x2="640" y2="120"/>
+          </g>
+          <g>
+            <rect x="300" y="252" width="90" height="56" rx="6" fill="#242c3a" stroke="#39435c"/>
+            <rect x="314" y="264" width="22" height="16" rx="2" fill="#e6ae4f" opacity="0.7"/>
+            <rect x="352" y="264" width="22" height="16" rx="2" fill="#e6ae4f" opacity="0.7"/>
+            <text x="345" y="326" text-anchor="middle" class="label-svg">관제실 (당신)</text>
+          </g>
+          <text x="710" y="56" text-anchor="middle" class="label-svg" fill="#7aa886">"안전하다"는 당신의 지시를 믿은 사람</text>
+          <g id="trolley4">
+            <rect x="20" y="160" width="76" height="40" rx="8" fill="#c95a50"/>
+            <rect x="30" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <rect x="58" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <circle cx="40" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+            <circle cx="76" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+          </g>
+          <text x="58" y="150" text-anchor="middle" class="label-svg" fill="#c95a50">폭주 트롤리</text>
+          <text x="710" y="250" text-anchor="middle" class="label-svg">본선 · 작업자 5명</text>
+        </svg>
+      </div>
+
+      <div class="choices">
+        <button class="choice omit" onclick="choose(4,'omit')">
+          <span class="tag">부작위 · 약속을 지킴</span>
+          <b>선로를 바꾸지 않는다</b>
+          <small>신뢰를 지키지만 → 5명이 사망한다.</small>
+        </button>
+        <button class="choice act" onclick="choose(4,'act')">
+          <span class="tag">작위 · 신뢰를 배반함</span>
+          <b>선로를 바꾼다</b>
+          <small>당신을 신뢰한 1명이 사망하고 → 5명이 살아남는다.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5단계 (독립 심화) ================= -->
+  <section class="screen" id="stage5">
+    <div class="card">
+      <span class="eyebrow deep">STAGE 5 · 심화</span>
+      <h2>타고난 운과 생명의 무게 — 최소 수혜자와 최대 수혜자</h2>
+      <button type="button" class="back-link" onclick="backTo(4)">← 4단계 다시 선택하기</button>
+      <div class="situation deep s5-note">
+        <p><b>완전히 새로운 상황입니다.</b> 앞 단계와 아무 관계가 없고, 약속도 아는 사람도 없습니다.<br>
+        브레이크가 고장 난 트롤리가 본선을 향해 달려갑니다. 당신 앞에는 선로를 바꾸는 레버가 있습니다.</p>
+      </div>
+
+      <div class="vs-wrap">
+        <div class="vs-panel main">
+          <div class="vs-head">
+            <span class="vs-track">본선</span>
+            <b>가장 불리한 처지의 5명</b>
+            <span class="vs-fate">레버를 안 당기면 → 5명 사망</span>
+          </div>
+          <div class="vs-people">
+            <div class="pcard">
+              <svg viewBox="0 0 48 48" role="img" aria-label="시각장애인">
+                <g stroke="#8b93a3" stroke-width="2.4" fill="none" stroke-linecap="round">
+                  <circle cx="22" cy="17" r="8"/>
+                  <path d="M8 43 Q22 29 36 43"/>
+                  <line x1="37" y1="24" x2="43" y2="44"/>
+                </g>
+                <rect x="15" y="14" width="14" height="5" rx="2.5" fill="#8b93a3"/>
+                <circle cx="37" cy="23" r="2" fill="#8b93a3"/>
+              </svg>
+              <b>시각장애인</b>
+              <span>앞을 볼 수 없다</span>
+            </div>
+            <div class="pcard">
+              <svg viewBox="0 0 48 48" role="img" aria-label="소녀 가장">
+                <g stroke="#8b93a3" stroke-width="2.4" fill="none" stroke-linecap="round">
+                  <circle cx="20" cy="17" r="7.5"/>
+                  <path d="M7 43 Q20 31 33 43"/>
+                  <circle cx="39" cy="31" r="4.5"/>
+                  <path d="M33 43 Q39 38 45 43"/>
+                </g>
+                <circle cx="11.5" cy="20" r="3" fill="#8b93a3"/>
+                <circle cx="28.5" cy="20" r="3" fill="#8b93a3"/>
+              </svg>
+              <b>소녀 가장</b>
+              <span>가난한 집안에서 동생들을 돌본다</span>
+            </div>
+            <div class="pcard">
+              <svg viewBox="0 0 48 48" role="img" aria-label="지적장애인">
+                <g stroke="#8b93a3" stroke-width="2.4" fill="none" stroke-linecap="round">
+                  <circle cx="24" cy="19" r="8"/>
+                  <path d="M9 43 Q24 30 39 43"/>
+                  <path d="M20 21 Q24 24 28 21"/>
+                  <path d="M38 8 C38 6.5 40 6.5 40 8 C40 6.5 42 6.5 42 8 C42 10 40 11.5 40 11.5 C40 11.5 38 10 38 8 Z" fill="#8b93a3" stroke="none"/>
+                </g>
+              </svg>
+              <b>지적장애인</b>
+              <span>평생 5살 지능으로 살아왔다</span>
+            </div>
+            <div class="pcard">
+              <svg viewBox="0 0 48 48" role="img" aria-label="트라우마 생존자">
+                <g stroke="#8b93a3" stroke-width="2.4" fill="none" stroke-linecap="round">
+                  <circle cx="24" cy="17" r="8"/>
+                  <path d="M9 43 Q24 30 39 43"/>
+                  <path d="M14 40 Q24 34 34 38"/>
+                  <path d="M34 40 Q24 34 14 38"/>
+                </g>
+              </svg>
+              <b>트라우마 생존자</b>
+              <span>부모의 가정폭력으로 깊은 상처를 안고 산다</span>
+            </div>
+            <div class="pcard">
+              <svg viewBox="0 0 48 48" role="img" aria-label="노인">
+                <g stroke="#8b93a3" stroke-width="2.4" fill="none" stroke-linecap="round">
+                  <circle cx="27" cy="20" r="7.5"/>
+                  <path d="M9 43 Q19 31 35 41"/>
+                  <line x1="40" y1="30" x2="40" y2="44"/>
+                  <path d="M37 30 Q40 27 43 30"/>
+                </g>
+              </svg>
+              <b>노인</b>
+              <span>평생 병과 가난 속에 살았다</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-divider"><span>레버를 당기면 선로가 바뀝니다</span></div>
+
+        <div class="vs-panel side">
+          <div class="vs-head">
+            <span class="vs-track">분기선</span>
+            <b>대기업 상속인 1명</b>
+            <span class="vs-fate">레버를 당기면 → 1명 사망</span>
+          </div>
+          <div class="heir-card">
+            <svg viewBox="0 0 48 48" role="img" aria-label="대기업 상속인">
+              <g stroke="#e6ae4f" stroke-width="2.4" fill="none" stroke-linecap="round">
+                <circle cx="24" cy="19" r="8"/>
+                <path d="M16 13 Q24 7 32 13"/>
+                <path d="M9 43 Q24 30 39 43"/>
+                <path d="M19 35 L24 41 L29 35"/>
+                <line x1="24" y1="41" x2="24" y2="44"/>
+                <path d="M8 8 L8 14 M5 11 L11 11"/>
+                <path d="M41 6 L41 11 M38.5 8.5 L43.5 8.5"/>
+              </g>
+            </svg>
+            <div>
+              <p>태어날 때부터 많은 것을 누리며 편하게 살아왔다.</p>
+              <div class="heir-chips">
+                <span class="heir-chip">타고난 부</span>
+                <span class="heir-chip">뛰어난 외모</span>
+                <span class="heir-chip">총명함</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scene">
+        <svg viewBox="0 0 800 340" id="svg5" aria-label="5단계 운과 정의 상황도">
+          <g stroke="#4a5568" stroke-width="3">
+            <line x1="0" y1="196" x2="800" y2="196"/>
+            <line x1="0" y1="216" x2="800" y2="216"/>
+            <line x1="330" y1="196" x2="470" y2="96"/>
+            <line x1="358" y1="216" x2="498" y2="116"/>
+            <line x1="470" y1="96" x2="800" y2="96"/>
+            <line x1="498" y1="116" x2="800" y2="116"/>
+          </g>
+          <g stroke="#39435355" stroke-width="6">
+            <line x1="40" y1="192" x2="40" y2="220"/><line x1="110" y1="192" x2="110" y2="220"/>
+            <line x1="180" y1="192" x2="180" y2="220"/><line x1="250" y1="192" x2="250" y2="220"/>
+            <line x1="560" y1="192" x2="560" y2="220"/><line x1="640" y1="192" x2="640" y2="220"/>
+            <line x1="560" y1="92" x2="560" y2="120"/><line x1="640" y1="92" x2="640" y2="120"/>
+          </g>
+          <g id="lever5">
+            <circle cx="345" cy="262" r="7" fill="#39435c"/>
+            <line id="leverArm5" x1="345" y1="262" x2="325" y2="236" stroke="#e6ae4f" stroke-width="5" stroke-linecap="round"/>
+            <text x="345" y="290" text-anchor="middle" class="label-svg">레버</text>
+          </g>
+          <g id="trolley5">
+            <rect x="20" y="160" width="76" height="40" rx="8" fill="#c95a50"/>
+            <rect x="30" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <rect x="58" y="168" width="18" height="14" rx="3" fill="#f2d8ce"/>
+            <circle cx="40" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+            <circle cx="76" cy="204" r="9" fill="#2b303b" stroke="#7d8a9c" stroke-width="2"/>
+          </g>
+          <text x="58" y="150" text-anchor="middle" class="label-svg" fill="#c95a50">브레이크 고장</text>
+          <text x="700" y="250" text-anchor="middle" class="label-svg">본선 · 최소 수혜자 5명</text>
+          <text x="700" y="66" text-anchor="middle" class="label-svg" fill="#e6ae4f">분기선 · 대기업 상속인 1명</text>
+        </svg>
+      </div>
+
+      <div class="choices">
+        <button class="choice omit" onclick="choose(5,'omit')">
+          <span class="tag">부작위 · 개입하지 않음</span>
+          <b>레버를 당기지 않는다</b>
+          <small>트롤리는 그대로 달린다 → 최소 수혜자 5명이 사망한다.</small>
+        </button>
+        <button class="choice act" onclick="choose(5,'act')">
+          <span class="tag">작위 · 직접 개입</span>
+          <b>레버를 당긴다</b>
+          <small>상속인 1명이 사망한다 → 최소 수혜자 5명이 살아남는다.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5단계 이유 선택 ================= -->
+  <section class="screen" id="reason5">
+    <div class="card">
+      <span class="eyebrow deep">STAGE 5 · 이유 선택</span>
+      <h2>당신은 왜 그렇게 선택했습니까?</h2>
+      <button type="button" class="back-link" onclick="backTo(5)">← 5단계 다시 선택하기</button>
+      <p class="lede" style="margin-bottom:20px;">
+        5단계의 핵심은 <b>선택 자체가 아니라 그 이유</b>입니다.
+        같은 선택이라도 이유가 다르면 전혀 다른 윤리적 판단이 됩니다.
+        아래에서 자신의 생각과 가장 가까운 이유를 골라 주십시오.
+      </p>
+      <div class="choices reasons" id="rs-options"></div>
+    </div>
+  </section>
+
+  <!-- ================= 결과 화면 ================= -->
+  <section class="screen" id="result">
+    <div class="card">
+      <span class="eyebrow" id="r-eyebrow">STAGE 1 · RESULT</span>
+      <h2 id="r-title"></h2>
+      <div class="result-box">
+        <div class="verdict" id="r-verdict"></div>
+        <p id="r-desc"></p>
+        <p class="ex-line" id="r-ex" style="display:none;"></p>
+      </div>
+      <div class="compare" id="r-compare" style="display:none;">
+        <h3 id="r-compare-title"></h3>
+        <p id="r-compare-desc"></p>
+      </div>
+      <div class="ethics">
+        <h3>이 선택이 던지는 윤리적 질문</h3>
+        <ul id="r-ethics"></ul>
+      </div>
+      <div class="theory" id="r-theory"></div>
+      <div class="actions">
+        <button class="btn ghost" type="button" onclick="backTo(current)">이 단계 다시 선택</button>
+        <button class="btn" id="r-next" onclick="nextFromResult()">다음 단계로</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 최종 요약 ================= -->
+  <section class="screen" id="final">
+    <div class="card">
+      <span class="eyebrow">FINAL REPORT</span>
+      <h2>당신의 다섯 가지 선택</h2>
+
+      <div class="record-box" id="record-box"></div>
+      <p class="record-note">↑ 위 유형과 개입 횟수를 학습지에 그대로 옮겨 적으십시오.</p>
+
+      <p class="sum-hint">아래 배너를 터치하면 해당 단계의 <b>논제 · 질문 · 예상 반문 · 비슷한 사례</b>가 열립니다. 토론을 준비할 단계 하나를 골라 살펴보십시오.</p>
+      <div class="summary-grid" id="sum-grid"></div>
+
+      <div class="tendency">
+        <h3 id="t-title"></h3>
+        <p id="t-desc"></p>
+        <p class="caveat">※ 이 결과는 다섯 문항에 대한 응답 경향을 단순화한 것으로, 개인의 도덕성을 평가하는 지표가 아닙니다. 실제 도덕 판단은 상황·관계·맥락에 따라 달라질 수 있습니다.</p>
+      </div>
+
+      <div class="actions">
+        <button class="btn" onclick="restart()">처음부터 다시 하기</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>고등학교 사회·윤리 수업용 사고실험 시뮬레이션<br>트롤리 딜레마(Philippa Foot, 1967 / Judith J. Thomson, 1985)를 재구성 · 5단계는 J. 롤스 『정의론』(1971)의 최소 수혜자·자연적 복권 개념을 참고하여 구성</footer>
+</div>
+
+<script>
+/* ===================== 데이터 ===================== */
+const STAGES = {
+  1:{
+    title:"고전적인 트롤리 딜레마",
+    act:{
+      verdict:"레버를 당겼습니다.",
+      desc:"1명이 죽고, 5명이 살았습니다. 더 많은 생명을 구했지만, 그 1명의 죽음은 당신의 손이 직접 만든 결과입니다.",
+      ex:"원래 그 사람은 안전했습니다. 당신이 방향을 바꾸는 순간, 위험이 그 사람에게 옮겨간 것입니다.",
+      theory:["공리주의(결과 중시)","최대 다수의 최대 행복"]
+    },
+    omit:{
+      verdict:"레버를 당기지 않았습니다.",
+      desc:"트롤리는 그대로 달렸고, 5명이 죽었습니다. 당신이 죽게 만든 사람은 없습니다. 하지만 막을 수 있던 죽음을 막지 않았습니다.",
+      ex:"쓰러진 사람을 그냥 지나치는 것과, 직접 밀어 넘어뜨리는 것. 결과가 같아도 우리는 이 둘을 다르게 느낍니다. 당신은 '직접 하는 행동'을 피한 것입니다.",
+      theory:["의무론(행위 자체 중시)","작위와 부작위의 구분"]
+    },
+    ethics:[
+      "5명을 살리기 위해 1명을 희생시켜도 되는가?",
+      "'죽게 만드는 것'과 '죽게 두는 것'은 같은 잘못인가?"
+    ]
+  },
+  2:{
+    title:"의도된 희생의 딜레마",
+    act:{
+      verdict:"사람을 밀어 떨어뜨렸습니다.",
+      desc:"그 사람의 몸이 트롤리를 멈췄고, 5명이 살았습니다. 1단계와 다른 점이 있습니다. 이번에는 그 사람의 죽음이 우연히 생긴 결과가 아니라, 5명을 구하기 위해 꼭 필요한 '도구'였다는 것입니다.",
+      ex:"쉽게 말해, 사람을 '브레이크'로 사용한 것입니다.",
+      theory:["공리주의(결과 중시)","수단으로서의 인간 사용"]
+    },
+    omit:{
+      verdict:"밀지 않았습니다.",
+      desc:"트롤리는 그대로 달렸고, 5명이 죽었습니다. 당신은 사람을 도구로 쓰는 것을 거부했습니다. 숫자로만 보면 1단계와 결과가 같은데, 왜 이번에는 다르게 느껴질까요?",
+      ex:"건강한 사람 1명의 장기를 꺼내 환자 5명을 살리자는 제안을 거절한 것과 비슷합니다.",
+      theory:["의무론(칸트: 인간을 수단으로만 대하지 말라)","인간 존엄성"]
+    },
+    ethics:[
+      "사람을 다른 사람을 구하기 위한 '도구'로 써도 되는가?",
+      "결과가 같은데, 레버는 되고 미는 것은 왜 안 될 것 같은가?",
+      "생명은 숫자만으로 비교할 수 있는가?"
+    ]
+  },
+  3:{
+    title:"그들은 누구인가 — 속성이 판단을 바꾸는가",
+    act:{
+      verdict:"이번에는 밀어 떨어뜨렸습니다.",
+      desc:"행인 1명이 죽고, 범죄자 3명과 노인 2명이 살았습니다. 당신은 '그들이 누구든, 다섯 생명은 다섯 생명'이라고 본 것입니다. 사람의 조건과 상관없이 생명을 똑같이 무겁게 여긴 판단입니다.",
+      theory:["생명 가치의 동등성","공리주의(수의 계산 유지)"]
+    },
+    omit:{
+      verdict:"이번에는 밀지 않았습니다.",
+      desc:"범죄자 3명과 노인 2명이 죽었습니다. 2단계와 같은 선택이라면 일관된 판단입니다. 하지만 2단계와 다른 선택이라면, '그들이 누구인가'라는 정보가 당신의 판단을 바꾼 것입니다.",
+      theory:["의무론(수단 사용 거부)","또는 응분·여명에 따른 가치 평가"]
+    },
+    ethics:[
+      "그 사람이 '어떤 사람인가'에 따라 생명의 무게가 달라지는가?",
+      "인간의 존엄은 조건 없이 같은가, 아니면 그가 한 일에 따라 달라지는가?",
+      "범죄자를 구하지 않는 것은 '벌'인가? 벌을 줄 권한은 개인에게 있는가?"
+    ]
+  },
+  4:{
+    title:"책임과 신뢰가 결합된 딜레마",
+    act:{
+      verdict:"선로를 바꿨습니다.",
+      desc:"당신을 믿고 일하던 1명이 죽고, 5명이 살았습니다. 더 많은 생명을 구했지만, 그 사람의 믿음을 저버린 대가였습니다.",
+      ex:"'여기는 안전하다'고 말해 놓고, 위급해지자 그 사람 쪽으로 위험을 돌린 것입니다.",
+      theory:["공리주의(결과 중시)","신뢰 배반의 비용"]
+    },
+    omit:{
+      verdict:"선로를 바꾸지 않았습니다.",
+      desc:"5명이 죽었습니다. 당신은 자신을 믿은 사람과의 약속을 지켰습니다. 하지만 한 사람과의 약속이 다섯 생명보다 무거운 것일까요?",
+      ex:"친구와의 약속을 지키느라 더 급한 여러 사람을 돕지 못했다면, 그것은 잘한 일일까요?",
+      theory:["의무론(약속·책임의 우선성)","역할 책임과 신의성실"]
+    },
+    ethics:[
+      "더 많은 생명을 구하기 위해 약속을 깨도 되는가?",
+      "나를 믿은 사람을 희생시켜 얻은 결과는 정당한가?",
+      "숫자 말고도 약속·책임·신뢰는 판단에서 얼마나 무거운가?"
+    ]
+  },
+  5:{
+    title:"타고난 운과 생명의 무게",
+    act:{
+      verdict:"레버를 당겼습니다. 상속인 1명이 사망하고, 최소 수혜자 5명이 살아남았습니다.",
+      desc:"선택은 끝났지만, 이 단계에서 정말 중요한 것은 지금부터입니다. 당신이 레버를 당긴 이유는 무엇이었습니까?",
+      theory:[]
+    },
+    omit:{
+      verdict:"레버를 당기지 않았습니다. 최소 수혜자 5명이 사망하고, 상속인은 살아남았습니다.",
+      desc:"선택은 끝났지만, 이 단계에서 정말 중요한 것은 지금부터입니다. 당신이 레버를 당기지 않은 이유는 무엇이었습니까?",
+      theory:[]
+    },
+    ethics:[
+      "타고난 재능·외모·부는 그 사람의 '자격'인가, 우연히 얻은 '운'인가? (롤스: 자연적 복권)",
+      "'사회에 도움이 안 된다'는 이유로 생명이 가벼워지는가?",
+      "'이미 많이 누렸다'는 이유로 생명이 가벼워지는가?",
+      "같은 선택도 이유가 다르면 평가가 달라지는가?"
+    ]
+  }
+};
+
+/* 5단계 이유 선택지 */
+const REASONS5 = {
+  act:[
+    {
+      key:"count",
+      label:"수의 원칙",
+      text:"그가 누구든 상관없다. 다섯 생명이 한 생명보다 많기 때문이다.",
+      title:"속성과 무관한 수의 계산",
+      interp:"당신은 상속인의 부와 재능도, 다섯 사람의 처지도 저울에 올리지 않았습니다. 오직 생명의 '수'만 본 것입니다. 여기에는 '모든 생명은 똑같이 무겁다'는 전제가 깔려 있습니다. 다만 1단계에서 레버를 당기지 않았다면, 이번에만 당긴 진짜 이유가 정말 숫자뿐이었는지 스스로 물어볼 필요가 있습니다.",
+      chips:["공리주의(수의 계산)","생명 가치의 동등성"]
+    },
+    {
+      key:"enjoyed",
+      label:"누린 몫의 계산",
+      text:"그는 이미 충분히 많은 것을 누리며 살았기 때문이다.",
+      title:"'이미 누렸다'는 저울 — 생명을 분배의 대상으로 본 판단",
+      interp:"'많이 가진 사람의 생명은 조금 가벼워도 된다'는 생각입니다. 그런데 이 논리를 뒤집으면 '가진 게 없는 사람의 생명은 가볍다'가 됩니다. 구조가 똑같기 때문입니다. 칸트가 보기에 인간의 존엄은 얼마나 누렸는가와 상관없는 무조건적 가치입니다. 롤스의 정의론도 돈과 기회를 나누는 원칙이지, 누가 살 자격이 있는지 정하는 원칙이 아닙니다.",
+      chips:["분배 논리의 생명 확장(쟁점)","존엄의 무조건성과 충돌"]
+    },
+    {
+      key:"weak",
+      label:"약자 우선 보호",
+      text:"사회는 가장 불리한 처지의 사람들을 우선적으로 보호해야 하기 때문이다.",
+      title:"최소 수혜자 우선 — 롤스를 생명에까지 확장할 수 있는가",
+      interp:"롤스는 『정의론』에서 '불평등은 가장 불리한 사람에게 이익이 될 때만 정당하다'는 차등의 원칙을 말했습니다. 하지만 이것은 소득과 기회를 나누는 원칙이지, 누구의 생명을 구할지 정하는 원칙이 아닙니다. 약자를 지키려는 마음은 소중합니다. 그런데 그 마음이 '강자의 생명은 가벼워도 된다'는 데까지 가도 되는지, 그것이 이 선택의 핵심 쟁점입니다.",
+      chips:["롤스 차등의 원칙(확장 적용의 쟁점)","사회적 약자 보호의 직관"]
+    }
+  ],
+  omit:[
+    {
+      key:"noharm",
+      label:"행위 자체의 거부",
+      text:"그가 누구든 상관없다. 내 행위로 사람을 죽일 수는 없기 때문이다.",
+      title:"속성과 무관한 행위 중심 판단",
+      interp:"당신은 상속인의 조건도, 다섯 사람의 처지도 저울에 올리지 않았습니다. '내 손으로 사람을 죽이는 행위' 자체를 거부한 것입니다. 사람의 조건으로 생명을 재는 것 자체를 거부했다는 점에서, 이 단계가 파 놓은 함정을 피해 갔습니다. 다만 1단계에서 레버를 당겼다면, 이번에만 당기지 않은 진짜 이유를 스스로 물어볼 필요가 있습니다.",
+      chips:["의무론(행위 자체 중시)","생명 가치의 동등성"]
+    },
+    {
+      key:"future",
+      label:"미래 기여의 계산",
+      text:"총명한 그가 앞으로 사회에 더 크게 기여할 것이기 때문이다.",
+      title:"재능과 전망으로 생명을 저울질한 판단",
+      interp:"당신이 저울에 올린 것은 생명의 '수'가 아니라, 그 사람의 재능과 미래였습니다. 그런데 롤스는 타고난 재능과 집안을 '자연적 복권', 즉 본인의 노력과 상관없이 우연히 뽑은 운으로 보았습니다. 복권처럼 우연히 얻은 것이 살 자격까지 정한다면, 그것은 공정한 저울일까요?",
+      chips:["기여도 기반 효용 계산","롤스: 재능은 자연적 복권(도덕적으로 임의적)"]
+    },
+    {
+      key:"burden",
+      label:"기여 불가능성의 계산",
+      text:"다섯 사람은 사회에 기여하기 어려운 사람들이기 때문이다.",
+      title:"'사회에 도움이 되지 않는 생명'이라는 위험한 저울",
+      interp:"'사회에 도움이 안 되는 생명은 가볍다'는 저울입니다. 역사에서 이 논리는 장애인과 약자의 생명을 '살 가치가 없다'고 규정했던 우생학으로 이어진 적이 있습니다. 이런 생각이 내 안에도 있다는 것을 발견하는 것, 그것이 이 단계의 목적입니다. 이 저울이 한번 허용되면 기준은 계속 움직이고, 결국 누구도 안전하지 않게 됩니다.",
+      chips:["생산성 기반 가치 평가(우생학적 논리와의 접점)","존엄의 무조건성과 충돌"]
+    }
+  ]
+};
+
+const CHOICE_LABEL = {
+  1:{act:"레버를 당김", omit:"레버를 당기지 않음"},
+  2:{act:"밀어 떨어뜨림", omit:"밀지 않음"},
+  3:{act:"밀어 떨어뜨림", omit:"밀지 않음"},
+  4:{act:"선로를 바꿈", omit:"선로를 바꾸지 않음"},
+  5:{act:"레버를 당김(상속인 사망)", omit:"레버를 당기지 않음(5명 사망)"}
+};
+
+const STAGE_SHORT = {
+  1:"고전적 딜레마", 2:"의도된 희생(육교)", 3:"심화 — 그들은 누구인가",
+  4:"책임과 신뢰(관제사)", 5:"심화 — 운과 생명의 무게"
+};
+
+/* ===================== 토론 준비 자료 ===================== */
+const DEBATE = {
+  1:{
+    topic:"레버를 당기면 1명이 죽고, 당기지 않으면 5명이 죽게 될 때, 레버를 당기는 것은 옳은가?",
+    questions:[
+      "'아무것도 하지 않는 것'도 하나의 선택인가?",
+      "생명의 수를 비교하여 판단하는 것은 언제나 정당한가?"
+    ],
+    counter:{
+      act:[
+        "5명의 죽음은 사고였지만, 1명의 죽음은 당신의 손이 직접 만든 결과다. 그 차이는 정말 없는가?",
+        "숫자가 유일한 기준이라면, 더 많은 사람을 구할 수만 있다면 무고한 사람을 언제든 희생시켜도 되는가?"
+      ],
+      omit:[
+        "막을 수 있는 죽음을 알면서 막지 않은 것은, 사실상 5명이 죽는 쪽을 '선택'한 것 아닌가?",
+        "손에 피를 묻히지 않으려는 마음 때문에 네 명이 더 죽었다. 깨끗한 양심이 생명보다 중요한가?"
+      ]
+    },
+    cases:[
+      "자율주행차 알고리즘: 사고를 피할 수 없는 순간, 차가 누구를 보호하도록 설계해야 하는가? MIT의 온라인 실험 '모럴 머신'(2016~)에는 전 세계 수백만 명이 참여해 서로 다른 답을 내놓았다."
+    ]
+  },
+  2:{
+    topic:"한 사람을 밀어 떨어뜨려야만 5명을 구할 수 있을 때, 그 사람을 미는 것은 옳은가?",
+    questions:[
+      "결과가 같은데도 '레버를 당기는 것'과 '사람을 미는 것'은 왜 다르게 느껴지는가?",
+      "사람을 다른 목적을 위한 수단으로 사용하는 것은 어떤 경우에도 허용될 수 없는가?"
+    ],
+    counter:{
+      act:[
+        "당신은 한 사람의 몸을 '브레이크'로 사용했다. 그렇다면 건강한 사람 1명의 장기를 꺼내 환자 5명을 살리는 것도 허용해야 하지 않는가?",
+        "필요하면 사람을 직접 희생시켜도 되는 사회에서, 다음 차례가 자신이 아니라고 누가 확신할 수 있는가?"
+      ],
+      omit:[
+        "레버와 밀기는 심리적 거리만 다를 뿐, '내 행위로 1명이 죽고 5명이 산다'는 구조는 같다. 느낌의 차이가 도덕의 차이가 될 수 있는가?",
+        "만약 1단계에서는 레버를 당겼다면, 이번에는 왜 다른가? 당신의 기준은 일관된가?"
+      ]
+    },
+    cases:[
+      "외과의사 사고실험: 건강한 사람 1명의 장기로 죽어가는 환자 5명을 살릴 수 있다면 그렇게 해도 되는가? 대부분의 사람이 '안 된다'고 답하는 이 사례는, 육교 딜레마와 무엇이 같고 무엇이 다른지 비교하는 데 널리 쓰인다."
+    ]
+  },
+  3:{
+    topic:"선로 위의 5명이 범죄자와 고령의 노인이라는 것을 알게 되었을 때, 한 사람을 밀어 그들을 구하는 것은 옳은가?",
+    questions:[
+      "생명의 가치는 그 사람이 한 일(범죄 전력)이나 나이에 따라 달라질 수 있는가?",
+      "위험에 빠진 범죄자를 구하지 않는 것은 '처벌'인가? 처벌할 권한은 누구에게 있는가?"
+    ],
+    counter:{
+      act:[
+        "당신은 무고한 행인 1명을 희생시켜 범죄자를 살렸다. 그 범죄자가 다시 피해자를 만든다면, 그 결과에 대한 책임은 없는가?",
+        "'다섯은 다섯'이라는 계산에는 그 사람들이 살아갈 삶의 내용이 전혀 반영되지 않는다. 그런 계산이 현실적인가?"
+      ],
+      omit:[
+        "생명의 가치를 범죄 전력이나 나이로 판단해도 된다면, 그 기준은 누가 정하며 어디까지 내려갈 수 있는가?",
+        "선로 위에서 개인이 '범죄자는 구하지 않겠다'고 정하는 것은, 법을 대신한 사적 심판 아닌가?"
+      ]
+    },
+    cases:[
+      "1962년 미국 시애틀의 '신장투석기 배분 위원회': 투석기가 부족하자 시민 위원회가 환자의 직업·가족·사회 기여도까지 따져 치료받을 사람을 골랐고, '생명을 사회적 가치로 저울질했다'는 거센 비판을 받았다. 이후 의료 배분에서 사회적 가치 기준은 원칙적으로 배제되었다."
+    ]
+  },
+  4:{
+    topic:"나의 지시를 믿고 일하는 사람이 대체 선로에 있을 때, 선로를 바꿔 5명을 구하는 것은 옳은가?",
+    questions:[
+      "약속과 신뢰의 무게는 생명의 수와 비교될 수 있는가?",
+      "맡은 역할(관제사)이 부여한 책임은 개인의 도덕적 판단보다 우선하는가?"
+    ],
+    counter:{
+      act:[
+        "그 사람은 당신의 지시를 믿었기에 그 선로에 있었다. 신뢰를 이용해 죽게 만든 것은, 낯선 사람을 희생시키는 것보다 더 나쁘지 않은가?",
+        "필요할 때마다 약속을 깨는 관리자를 누가 믿고 일하겠는가? 그런 사회에서 협력이 유지될 수 있는가?"
+      ],
+      omit:[
+        "약속을 지킨 대가는 5명의 죽음이었다. 한 사람과의 약속이 다섯 생명보다 무거운가?",
+        "관제사의 근본 책임은 특정 개인과의 약속이 아니라 사고 피해를 최소화하는 것 아닌가?"
+      ]
+    },
+    cases:[
+      "타라소프 판결(미국 캘리포니아, 1976): 상담자가 환자와의 비밀유지 약속을 지켜야 하는가, 아니면 약속을 깨서라도 환자가 해치려는 제3자에게 위험을 알려야 하는가? 법원은 '보호 의무가 비밀유지보다 우선한다'고 판단했고, 이 판결은 지금도 논쟁거리다."
+    ]
+  },
+  5:{
+    topic:"많은 것을 누려 온 상속인 1명과 가장 불리한 처지의 5명 중 한쪽을 골라야 할 때, 레버를 당겨 상속인을 희생시키는 것은 옳은가?",
+    questions:[
+      "타고난 재능·외모·부는 그 사람의 '자격'인가, 우연히 얻은 '운'인가?",
+      "'이미 많이 누렸으니 희생해도 된다'와 '기여하지 못하니 희생해도 된다'는 논리는 서로 다른가?",
+      "같은 선택이라도 이유가 다르면 도덕적 평가가 달라지는가?"
+    ],
+    counter:{
+      act:[
+        "상속인을 희생시킨 이유가 '5명보다 적어서'가 아니라 '이미 많이 누려서'라면, 생명을 재산처럼 나눠 계산한 것 아닌가?",
+        "부유하다는 이유로 생명이 가벼워질 수 있다면, 반대로 가난하다는 이유로 가벼워지는 것도 막을 논리가 없지 않은가?"
+      ],
+      omit:[
+        "그들이 '평범한 5명'이었어도 같은 선택을 했겠는가? 다섯 사람의 불리한 처지가 판단에 영향을 주지 않았다고 확신할 수 있는가?",
+        "상속인의 재능과 미래의 기여를 고려했다면, 사회에 도움이 되는 정도로 생명을 저울질한 것이다. 그 저울은 어디까지 허용되는가?"
+      ]
+    },
+    cases:[
+      "코로나19 초기 의료자원 배분 논쟁: 인공호흡기가 부족해진 일부 국가에서 나이·회복 가능성 등을 기준으로 치료 우선순위를 정하는 지침이 나오자, '생명에 순서를 매길 수 있는가'를 두고 격렬한 논쟁이 벌어졌다."
+    ]
+  }
+};
+
+/* ===================== 토론 준비 확장 데이터 ===================== */
+const DEBATE_EXTRA = {
+  1:{
+    premise:"브레이크가 고장 난 트롤리가 5명이 묶인 선로로 달려온다. 레버를 당기면 트롤리는 1명이 묶인 다른 선로로 방향을 바꾼다.",
+    attack:{
+      act:"눈앞에서 다섯 명이 죽어 가는데 '나는 아무것도 하지 않았다'는 말이 그 죽음에 대한 답이 될 수 있는가?",
+      omit:"다른 선로의 1명이 당신의 가족이었더라도, '숫자가 많다'는 이유만으로 레버를 당겼겠는가?"
+    },
+    phil:{
+      act:{name:"벤담", line:"옳고 그름의 기준은 최대 다수의 최대 행복이다.", icon:"bentham"},
+      omit:{name:"칸트", line:"옳음은 결과가 아니라 행위 자체의 도덕성에 있다.", icon:"kant"}
+    }
+  },
+  2:{
+    premise:"트롤리가 선로에 묶인 5명을 향해 달려온다. 당신은 육교 위에 있고, 옆에 있는 몸집이 큰 사람을 밀어 떨어뜨리면 트롤리를 멈출 수 있다.",
+    attack:{
+      act:"당신이 밀기를 거부한 것은 그것이 '틀려서'인가, '끔찍해서'인가? 감정적 거부감이 곧 도덕적 근거가 되는가?",
+      omit:"5명을 위해 1명을 밀 수 있다면, 50명을 위해 10명을 미는 것도 허용된다. 그 계산의 끝은 어디인가?"
+    },
+    phil:{
+      act:{name:"밀", line:"행위는 행복을 증진하는 정도에 비례하여 옳다.", icon:"mill"},
+      omit:{name:"칸트", line:"인간을 결코 단지 수단으로만 대하지 말라.", icon:"kant"}
+    }
+  },
+  3:{
+    premise:"상황은 2단계와 동일하다. 다만 선로 위의 5명이 범죄자 3명과 고령의 노인 2명이라는 사실을 알게 되었다.",
+    attack:{
+      act:"범죄자라는 이유로 구하지 않았다면, 당신은 선로 위에서 단 몇 초 만에 그들의 남은 인생 전체를 심판한 것 아닌가?",
+      omit:"'다섯은 다섯'이라는 당신의 원칙을 지키기 위해 아무 잘못 없는 행인이 목숨으로 값을 치렀다. 그 원칙은 누구를 위한 것인가?"
+    },
+    phil:{
+      act:{name:"싱어", line:"누구의 이익이든 동등하게 고려되어야 한다(이익 평등 고려의 원칙).", icon:"singer"},
+      omit:{name:"아퀴나스", line:"타인에게 가하는 해악을 목적 달성의 수단으로 의도해서는 안 된다(이중 효과의 원리).", icon:"aquinas"}
+    }
+  },
+  4:{
+    premise:"당신은 철도 관제사다. 트롤리가 작업자 5명을 향해 달려오고, 선로를 바꾸면 '이 선로는 안전하다'는 당신의 안내를 믿고 일하던 작업자 1명이 희생된다.",
+    attack:{
+      act:"약속이 그토록 무겁다면, '사고 피해를 막겠다'는 관제사로서의 더 큰 약속은 왜 가볍게 여기는가?",
+      omit:"당신이 배신한 그 사람도 누군가의 가족이다. '더 많은 수'로 정당화된 배신은 배신이 아니게 되는가?"
+    },
+    phil:{
+      act:{name:"벤담", line:"관련된 모든 사람의 고통과 이익을 빠짐없이 계산하라.", icon:"bentham"},
+      omit:{name:"로스", line:"약속을 지켜야 한다는 성실(신의)의 의무는 인간의 기본적 의무다(조건부 의무).", icon:"ross"}
+    }
+  },
+  5:{
+    premise:"트롤리가 사회에서 가장 불리한 처지에 놓인 5명을 향해 달려온다. 레버를 당기면, 부·외모·재능을 타고난 대기업 상속인 1명이 있는 선로로 방향이 바뀐다.",
+    attack:{
+      act:"당신이 상속인을 살린 진짜 이유가 '행위의 거부'였는가, 아니면 그의 재능과 배경이 아까웠기 때문은 아닌가?",
+      omit:"'많이 가진 사람의 생명은 덜 무겁다'는 저울이 사회의 원칙이 되면, 그 저울은 언젠가 당신에게도 겨눠지지 않겠는가?"
+    },
+    phil:{
+      act:{name:"롤스", line:"사회는 가장 불리한 처지의 사람에게 이익이 되도록 배려해야 한다(차등의 원칙 — 단, 생명에까지 확장할 수 있는지는 쟁점).", icon:"rawls"},
+      omit:{name:"칸트", line:"인간의 존엄은 가진 것·누린 것과 무관한 무조건적 가치다.", icon:"kant"}
+    }
+  }
+};
+for(const k in DEBATE_EXTRA) Object.assign(DEBATE[k], DEBATE_EXTRA[k]);
+
+/* 배너 패널용 미니 상황도 */
+function miniScene(i){
+  const T='#4a5568', A='#e6ae4f', R='#c95a50', G='#8b93a3', GR='#7aa886';
+  const dot=(x,y,c,r)=>`<circle cx="${x}" cy="${y}" r="${r||3.5}" fill="${c}"/>`;
+  const trolley=`<rect x="6" y="52" width="18" height="12" rx="2" fill="${R}"/><circle cx="11" cy="66" r="2.5" fill="${T}"/><circle cx="19" cy="66" r="2.5" fill="${T}"/>`;
+  const forkTrack=`<line x1="0" y1="60" x2="140" y2="60" stroke="${T}" stroke-width="3"/><line x1="55" y1="60" x2="112" y2="24" stroke="${T}" stroke-width="3"/>`;
+  const bridgeTrack=`<line x1="0" y1="72" x2="140" y2="72" stroke="${T}" stroke-width="3"/>
+    <line x1="58" y1="72" x2="58" y2="34" stroke="${T}" stroke-width="3"/>
+    <line x1="84" y1="72" x2="84" y2="34" stroke="${T}" stroke-width="3"/>
+    <line x1="50" y1="34" x2="92" y2="34" stroke="${T}" stroke-width="4"/>`;
+  const bridgeTrolley=`<rect x="6" y="62" width="18" height="12" rx="2" fill="${R}"/>`;
+  let body='';
+  if(i===1){
+    body = forkTrack + trolley;
+    for(let k=0;k<5;k++) body += dot(102+k*9, 56, A);
+    body += dot(116, 20, A);
+  } else if(i===2){
+    body = bridgeTrack + bridgeTrolley + dot(71, 26, A, 5.5);
+    for(let k=0;k<5;k++) body += dot(100+k*9, 68, A);
+  } else if(i===3){
+    body = bridgeTrack + bridgeTrolley + dot(71, 26, A, 5.5);
+    for(let k=0;k<3;k++) body += dot(100+k*9, 68, G);
+    for(let k=0;k<2;k++) body += dot(127+k*9, 68, A);
+  } else if(i===4){
+    body = forkTrack + trolley
+      + `<rect x="10" y="14" width="14" height="20" rx="2" fill="none" stroke="${T}" stroke-width="2.5"/><line x1="17" y1="14" x2="17" y2="6" stroke="${T}" stroke-width="2.5"/><circle cx="17" cy="5" r="2" fill="${A}"/>`;
+    for(let k=0;k<5;k++) body += dot(102+k*9, 56, A);
+    body += dot(116, 20, GR, 4.5);
+  } else {
+    body = forkTrack + trolley;
+    for(let k=0;k<5;k++) body += dot(102+k*9, 56, G);
+    body += dot(118, 19, A, 5) + `<path d="M113 10 L116 14 L118 10 L120 14 L123 10 L123 15 L113 15 Z" fill="${A}"/>`;
+  }
+  return `<svg viewBox="0 0 148 82" role="img" aria-label="${i}단계 상황 요약도">${body}</svg>`;
+}
+
+/* 사상가 아이콘 (추상화된 초상) */
+function philIcon(kind, color){
+  const c = color, sw = 'stroke="'+c+'" stroke-width="2.4" fill="none" stroke-linecap="round"';
+  const head = `<circle cx="24" cy="19" r="8" ${sw}/>`;
+  const body = `<path d="M9 43 Q24 30 39 43" ${sw}/>`;
+  let feat = '';
+  if(kind==='bentham') feat = `<line x1="12" y1="10" x2="36" y2="10" ${sw}/><rect x="18" y="3" width="12" height="7" rx="1.5" ${sw}/>`;
+  else if(kind==='kant') feat = `<circle cx="13.5" cy="21" r="3.2" ${sw}/><circle cx="34.5" cy="21" r="3.2" ${sw}/><path d="M16 12 Q24 7 32 12" ${sw}/>`;
+  else if(kind==='mill') feat = `<path d="M15 15 Q15 22 17 25" ${sw}/><path d="M33 15 Q33 22 31 25" ${sw}/>`;
+  else if(kind==='singer') feat = `<circle cx="20.5" cy="19" r="3" ${sw}/><circle cx="27.5" cy="19" r="3" ${sw}/><line x1="23.5" y1="19" x2="24.5" y2="19" ${sw}/>`;
+  else if(kind==='aquinas') feat = `<path d="M15.5 15 A8.5 8.5 0 0 1 32.5 15" stroke="${c}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  else if(kind==='ross') feat = `<line x1="17" y1="23.5" x2="31" y2="23.5" ${sw}/>`;
+  else if(kind==='rawls') feat = `<rect x="17" y="16.5" width="5.5" height="4.5" rx="1" ${sw}/><rect x="25.5" y="16.5" width="5.5" height="4.5" rx="1" ${sw}/><line x1="23" y1="18.5" x2="25.5" y2="18.5" ${sw}/>`;
+  return `<svg viewBox="0 0 48 48" role="img" aria-label="${kind} 아이콘">${head}${feat}${body}</svg>`;
+}
+
+/* ===================== 단계 초기화·뒤로가기 ===================== */
+const SVG_INIT = {};
+
+function resetStage(n){
+  const svg = document.getElementById('svg'+n);
+  if(SVG_INIT[n]) svg.innerHTML = SVG_INIT[n];
+  document.querySelectorAll('#stage'+n+' .choice').forEach(b=>b.disabled=false);
+  delete answers[n];
+  if(n===5) reason5 = null;
+}
+
+function backTo(n){
+  for(let k=5;k>=n;k--) resetStage(k);
+  goStage(n);
+}
+
+let answers = {};
+let reason5 = null;
+let current = 0;
+
+/* ===================== 사람 그리기 ===================== */
+function person(x, y, color, scale){
+  const s = scale || 1;
+  return `<g class="person" transform="translate(${x},${y}) scale(${s})">
+    <circle cx="0" cy="-16" r="6" fill="${color}"/>
+    <line x1="0" y1="-10" x2="0" y2="6" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="0" y1="-4" x2="-7" y2="3" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="-4" x2="7" y2="3" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="6" x2="-6" y2="16" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="6" x2="6" y2="16" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+  </g>`;
+}
+function bigman(id, color){
+  return `<g id="${id}" transform="translate(440,100) scale(1.35)">
+    <circle cx="0" cy="-16" r="7" fill="${color}"/>
+    <line x1="0" y1="-9" x2="0" y2="8" stroke="${color}" stroke-width="6" stroke-linecap="round"/>
+    <line x1="0" y1="-3" x2="-8" y2="4" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="0" y1="-3" x2="8" y2="4" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="0" y1="8" x2="-6" y2="18" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="0" y1="8" x2="6" y2="18" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+  </g>`;
+}
+
+function drawPeople(){
+  // 1단계
+  const s1 = document.getElementById('svg1');
+  let g1 = '<g id="people1-main">';
+  for(let i=0;i<5;i++) g1 += person(600+i*36, 186, '#e6ae4f');
+  g1 += '</g><g id="people1-side">'+person(690, 86, '#e6ae4f')+'</g>';
+  s1.insertAdjacentHTML('beforeend', g1);
+
+  // 2단계
+  const s2 = document.getElementById('svg2');
+  let g2 = '<g id="people2-main">';
+  for(let i=0;i<5;i++) g2 += person(590+i*36, 236, '#e6ae4f');
+  g2 += '</g>' + bigman('bigman2', '#e6ae4f');
+  s2.insertAdjacentHTML('beforeend', g2);
+
+  // 3단계: 범죄자 3 + 노인 2(지팡이)
+  const s3 = document.getElementById('svg3');
+  let g3 = '<g id="people3-main">';
+  for(let i=0;i<3;i++) g3 += person(575+i*36, 236, '#8b93a3');
+  for(let i=0;i<2;i++){
+    const x = 683+i*36;
+    g3 += person(x, 238, '#8b93a3', 0.88);
+    g3 += `<line x1="${x+9}" y1="228" x2="${x+13}" y2="252" stroke="#8b93a3" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+  g3 += '</g>' + bigman('bigman3', '#e6ae4f');
+  s3.insertAdjacentHTML('beforeend', g3);
+
+  // 4단계
+  const s4 = document.getElementById('svg4');
+  let g4 = '<g id="people4-main">';
+  for(let i=0;i<5;i++) g4 += person(600+i*36, 186, '#e6ae4f');
+  g4 += '</g><g id="people4-side">'+person(690, 86, '#7aa886')+'</g>';
+  s4.insertAdjacentHTML('beforeend', g4);
+
+  // 5단계: 최소 수혜자 5명(다양한 형태) + 상속인 1명
+  const s5 = document.getElementById('svg5');
+  let g5 = '<g id="people5-main">';
+  // 시각장애인(흰지팡이)
+  g5 += person(586, 186, '#9aa7b8');
+  g5 += `<line x1="594" y1="176" x2="600" y2="200" stroke="#ede7da" stroke-width="2.5" stroke-linecap="round"/>`;
+  // 소녀 가장(작게)
+  g5 += person(624, 189, '#9aa7b8', 0.8);
+  // 지적장애인
+  g5 += person(658, 186, '#9aa7b8');
+  // 트라우마 생존자
+  g5 += person(694, 186, '#9aa7b8');
+  // 병과 가난 속의 노인(지팡이)
+  g5 += person(730, 188, '#9aa7b8', 0.9);
+  g5 += `<line x1="739" y1="178" x2="743" y2="202" stroke="#9aa7b8" stroke-width="2.5" stroke-linecap="round"/>`;
+  g5 += '</g>';
+  // 상속인(금색, 서류가방)
+  g5 += '<g id="people5-side">'+person(690, 86, '#e6ae4f');
+  g5 += `<rect x="698" y="90" width="12" height="9" rx="2" fill="#e6ae4f"/>`;
+  g5 += '</g>';
+  s5.insertAdjacentHTML('beforeend', g5);
+}
+
+/* ===================== 화면 전환 ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  const el = document.getElementById(id);
+  el.classList.remove('show'); void el.offsetWidth;
+  el.classList.add('show');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateProgress(){
+  for(let i=1;i<=5;i++){
+    const el = document.getElementById('ps'+i);
+    el.classList.remove('active','done');
+    if(answers[i]) el.classList.add('done');
+    else if(i===current) el.classList.add('active');
+  }
+}
+
+function goStage(n){
+  if(answers[n] !== undefined) resetStage(n);
+  current = n;
+  updateProgress();
+  showScreen('stage'+n);
+}
+
+/* ===================== 트롤리 애니메이션 ===================== */
+const BRIDGE_STAGES = [2,3];
+
+/* 분기 기하: 분기 시작 tx=286, 분기 종료 tx=426 (트롤리 중심 기준),
+   분기 구간 동안 y가 0 → -100으로 선형 하강. 선로 기울기와 일치. */
+const DIV_START = 286;
+const DIV_END = 426;
+
+function animate(stage, choice, done){
+  const trolley = document.getElementById('trolley'+stage);
+  const dur = 1700;
+  const start = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced){ applyHit(stage, choice); setTimeout(done, 200); return; }
+
+  const isBridge = BRIDGE_STAGES.includes(stage);
+  const centerY = isBridge ? 230 : 180;
+
+  function frame(now){
+    const t = Math.min((now-start)/dur, 1);
+    const ease = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    let tx=0, ty=0, rot=0;
+
+    if(isBridge && choice==='act'){
+      tx = 300*ease; // 육교 아래에서 멈춤
+    } else {
+      tx = 560*ease;
+      if(!isBridge && choice==='act' && tx > DIV_START){
+        // 분기점에 도달한 순간부터 선로 기울기를 따라 즉시 꺾임
+        const p = Math.min((tx - DIV_START)/(DIV_END - DIV_START), 1);
+        ty = -100*p;
+        const smooth = Math.max(0, Math.min(1, p/0.12, (1-p)/0.12));
+        rot = -35.5*smooth;
+      }
+    }
+    trolley.setAttribute('transform', `translate(${tx},${ty}) rotate(${rot} 58 ${centerY})`);
+    if(t<1) requestAnimationFrame(frame);
+    else { applyHit(stage, choice); setTimeout(done, 700); }
+  }
+  requestAnimationFrame(frame);
+
+  if(isBridge && choice==='act'){
+    const big = document.getElementById('bigman'+stage);
+    let s = performance.now();
+    function fall(now){
+      const t = Math.min((now-s)/700, 1);
+      const y = 100 + 130*t*t;
+      big.setAttribute('transform', `translate(440,${y}) scale(1.35) rotate(${90*t})`);
+      if(t<1) requestAnimationFrame(fall);
+    }
+    requestAnimationFrame(fall);
+  }
+}
+
+function applyHit(stage, choice){
+  const fade = (id)=>{ const el=document.getElementById(id); if(el){el.style.transition='opacity .6s'; el.style.opacity='0.18';} };
+  if(choice==='act'){
+    if(stage===1) fade('people1-side');
+    if(stage===2) fade('bigman2');
+    if(stage===3) fade('bigman3');
+    if(stage===4) fade('people4-side');
+    if(stage===5) fade('people5-side');
+  } else {
+    fade('people'+stage+'-main');
+  }
+  if((stage===1||stage===5) && choice==='act'){
+    const arm = document.getElementById('leverArm'+stage);
+    if(arm){ arm.setAttribute('x2','365'); arm.setAttribute('y2','236'); }
+  }
+}
+
+/* ===================== 선택 처리 ===================== */
+function choose(stage, choice){
+  answers[stage] = choice;
+  document.querySelectorAll('#stage'+stage+' .choice').forEach(b=>b.disabled=true);
+  updateProgress();
+  animate(stage, choice, ()=>{
+    if(stage===5) showReason5(choice);
+    else showResult(stage, choice);
+  });
+}
+
+/* 5단계: 이유 선택 화면 */
+function showReason5(choice){
+  const box = document.getElementById('rs-options');
+  box.innerHTML = REASONS5[choice].map(r=>`
+    <button class="choice reason" onclick="pickReason5('${r.key}')">
+      <span class="tag">${r.label}</span>
+      <b>"${r.text}"</b>
+    </button>`).join('');
+  showScreen('reason5');
+}
+
+function pickReason5(key){
+  reason5 = REASONS5[answers[5]].find(r=>r.key===key);
+  showResult(5, answers[5]);
+}
+
+/* 3단계 비교 문구 */
+function compareText(stage){
+  if(stage===3){
+    const prev = answers[2], cur = answers[3];
+    if(prev===cur){
+      return {
+        title:"2단계와 같은 선택을 했습니다",
+        desc:"'그들이 누구인가'를 알게 되어도 판단이 바뀌지 않았습니다. 사람의 조건과 상관없이 생명의 가치를 본 것입니다. 칸트는 인간의 존엄이란 값을 매길 수 없는 것이어서, 그가 무엇을 했는가로 비교할 수 없다고 보았습니다."
+      };
+    }
+    if(prev==='omit' && cur==='act'){
+      return {
+        title:"2단계에서는 밀지 않았지만, 이번에는 밀었습니다",
+        desc:"바뀐 것은 '그들이 누구인가'라는 정보뿐인데, 선택이 반대가 되었습니다. 그런데 방향을 보십시오. 이번 선택은 범죄자와 노인을 구하려고 무고한 행인을 희생시킨 것입니다. '저 다섯이 덜 가치 있다'고 느꼈다면 오히려 밀지 않았어야 합니다. 무엇이 당신의 판단을 움직였는지 스스로 물어보십시오."
+      };
+    }
+    return {
+      title:"2단계에서는 밀었지만, 이번에는 밀지 않았습니다",
+      desc:"바뀐 것은 '그들이 누구인가'라는 정보뿐입니다. 이 선택은 범죄 전력이나 나이로 생명의 무게를 잰 것일 수 있습니다. 이런 생각은 누구에게나 있습니다. 하지만 위험한 질문이 남습니다. 이 저울이 허용된다면, 다음에는 누가 '덜 가치 있는 생명'이 될까요? 그리고 그것을 정할 권한은 누구에게 있을까요?"
+    };
+  }
+  if(stage===5 && reason5){
+    return { title:reason5.title, desc:reason5.interp };
+  }
+  return null;
+}
+
+function showResult(stage, choice){
+  const d = STAGES[stage];
+  const c = d[choice];
+  document.getElementById('r-eyebrow').textContent = `STAGE ${stage} · RESULT`;
+  document.getElementById('r-title').textContent = d.title;
+  const v = document.getElementById('r-verdict');
+  v.textContent = c.verdict;
+  v.className = 'verdict '+choice;
+  document.getElementById('r-desc').textContent = stage===5
+    ? `당신이 밝힌 이유: "${reason5.text}"`
+    : c.desc;
+  const exEl = document.getElementById('r-ex');
+  if(stage!==5 && c.ex){
+    exEl.textContent = '💡 ' + c.ex;
+    exEl.style.display = 'block';
+  } else {
+    exEl.style.display = 'none';
+  }
+
+  const cmp = compareText(stage);
+  const box = document.getElementById('r-compare');
+  if(cmp){
+    document.getElementById('r-compare-title').textContent = cmp.title;
+    document.getElementById('r-compare-desc').textContent = cmp.desc;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+
+  document.getElementById('r-ethics').innerHTML = d.ethics.map(q=>`<li>${q}</li>`).join('');
+  if(stage===5){
+    document.getElementById('r-theory').innerHTML =
+      reason5.chips.map(t=>`<span class="theory-chip hit">${t}</span>`).join('');
+  } else {
+    document.getElementById('r-theory').innerHTML =
+      c.theory.map(t=>`<span class="theory-chip hit">${t}</span>`).join('') +
+      d[choice==='act'?'omit':'act'].theory.map(t=>`<span class="theory-chip">${t}</span>`).join('');
+  }
+  document.getElementById('r-next').textContent = stage<5 ? '다음 단계로' : '최종 결과 보기';
+  showScreen('result');
+}
+
+function nextFromResult(){
+  if(current<5) goStage(current+1);
+  else showFinal();
+}
+
+/* ===================== 최종 요약 ===================== */
+function showFinal(){
+  current = 6;
+  updateProgress();
+  const grid = document.getElementById('sum-grid');
+  grid.innerHTML = [1,2,3,4,5].map(i=>{
+    const c = answers[i];
+    const extra = (i===5 && reason5) ? `<br>이유: ${reason5.label} — "${reason5.text}"` : '';
+    return `<div class="sum-wrap">
+      <button type="button" class="sum-item" id="sum-btn-${i}" onclick="toggleDebate(${i})" aria-expanded="false" aria-controls="dp-${i}">
+        <div class="sum-num">${i}</div>
+        <div class="txt"><b>${STAGE_SHORT[i]}</b><small>${CHOICE_LABEL[i][c]}${extra}</small></div>
+        <span class="sum-badge ${c}">${c==='act'?'개입':'불개입'}</span>
+        <span class="tap" aria-hidden="true">▼</span>
+      </button>
+      <div class="debate-panel" id="dp-${i}" role="region" aria-label="${i}단계 토론 준비 자료"></div>
+    </div>`;
+  }).join('');
+
+  const actCount = Object.values(answers).filter(v=>v==='act').length;
+  const typeName = actCount>=4 ? "결과 중심형" : (actCount<=1 ? "행위 중심형" : "혼합형");
+  const typeSub  = actCount>=4 ? "공리주의적 경향" : (actCount<=1 ? "의무론적 경향" : "상황에 따라 판단이 달라지는 경향");
+  document.getElementById('record-box').innerHTML = `
+    <span class="label">학습지 기록용 · 나의 유형</span>
+    <span class="type">${typeName} <small style="font-size:0.85rem;color:var(--muted);">(${typeSub})</small></span>
+    <span class="count">개입 ${actCount}회 · 불개입 ${5-actCount}회${reason5 ? ` &nbsp;|&nbsp; 5단계 이유: ${reason5.label}` : ''}</span>`;
+
+  const t = document.getElementById('t-title');
+  const p = document.getElementById('t-desc');
+  if(actCount>=4){
+    t.textContent = "결과 중심 판단이 우세 (공리주의적 경향)";
+    p.textContent = "대부분의 상황에서 '더 많은 생명을 구하는 결과'를 선택했습니다. 벤담과 밀의 공리주의는 행위의 옳고 그름을 결과가 산출하는 전체 이익으로 판단합니다. 다만 이 관점은 '인간을 수단으로 사용해도 되는가', '약속·신뢰의 가치는 어디에 두는가'라는 물음에 답해야 합니다.";
+  } else if(actCount<=1){
+    t.textContent = "행위 중심 판단이 우세 (의무론적 경향)";
+    p.textContent = "대부분의 상황에서 '직접 죽음을 초래하는 행위'를 거부했습니다. 칸트의 의무론은 결과와 무관하게 행위 자체의 도덕성(인간을 수단으로 대하지 않을 의무, 약속을 지킬 의무)을 중시합니다. 다만 이 관점은 '막을 수 있었던 다수의 죽음에 대한 책임'이라는 물음에 답해야 합니다.";
+  } else {
+    t.textContent = "상황에 따라 달라진 판단 (혼합적 경향)";
+    p.textContent = `개입을 선택한 경우는 ${actCount}번, 개입하지 않은 경우는 ${5-actCount}번이었습니다. 이는 많은 사람들의 실제 응답 패턴과 유사합니다. 같은 '소수 대 다수'라도 죽음이 부수적 결과인지, 수단인지, 신뢰의 배반인지에 따라 판단이 달라진다는 것은, 우리의 도덕 판단이 단순한 숫자 계산이 아니라 행위의 방식·의도·관계까지 고려함을 보여줍니다.`;
+  }
+
+  showScreen('final');
+}
+
+function toggleDebate(i){
+  const panel = document.getElementById('dp-'+i);
+  const wasOpen = panel.classList.contains('show');
+
+  document.querySelectorAll('.debate-panel').forEach(pn=>pn.classList.remove('show'));
+  document.querySelectorAll('button.sum-item').forEach(b=>{
+    b.classList.remove('open');
+    b.setAttribute('aria-expanded','false');
+  });
+  if(wasOpen) return;
+
+  const d = DEBATE[i];
+  const my = answers[i];
+  const myLabel = my==='act' ? '개입' : '불개입';
+  panel.innerHTML = `
+    <div class="dp-premise">
+      <div class="ptxt">
+        <span>STAGE ${i} · 딜레마 상황</span>
+        <p>${d.premise}</p>
+      </div>
+      ${miniScene(i)}
+    </div>
+    <div class="dp-topic">
+      <span>토론 논제</span>
+      <p>${d.topic}</p>
+    </div>
+    <div class="dp-sec">
+      <h4>더 생각해볼 만한 질문</h4>
+      <ul>${d.questions.map(q=>`<li>${q}</li>`).join('')}</ul>
+    </div>
+    <div class="dp-sec counter">
+      <h4>예상 반문 — 나의 선택(${myLabel})에 대해 상대편이 이렇게 물을 수 있습니다</h4>
+      <ul>${d.counter[my].map(q=>`<li>${q}</li>`).join('')}</ul>
+    </div>
+    <div class="dp-sec attack">
+      <h4>상대편에게 던질 반문 — 나(${myLabel})는 이렇게 되물을 수 있습니다</h4>
+      <ul><li>${d.attack[my]}</li></ul>
+    </div>
+    <div class="dp-sec case">
+      <h4>비슷한 사례</h4>
+      <ul>${d.cases.map(q=>`<li>${q}</li>`).join('')}</ul>
+    </div>
+    <div class="dp-phil">
+      <h4>근거 구성에 참고할 사상가</h4>
+      <div class="phil-row">
+        <div class="phil-card act">
+          ${philIcon(d.phil.act.icon, '#c95a50')}
+          <div><span class="side">개입(찬성) 측 참고</span><b>${d.phil.act.name}</b><small>${d.phil.act.line}</small></div>
+        </div>
+        <div class="phil-card omit">
+          ${philIcon(d.phil.omit.icon, '#7d8a9c')}
+          <div><span class="side">불개입(반대) 측 참고</span><b>${d.phil.omit.name}</b><small>${d.phil.omit.line}</small></div>
+        </div>
+      </div>
+    </div>
+    <p class="dp-note">※ 여기 있는 내용은 출발점일 뿐입니다. 토론의 근거는 모둠에서 직접 만들어 보십시오.</p>`;
+
+  panel.classList.add('show');
+  const btn = document.getElementById('sum-btn-'+i);
+  btn.classList.add('open');
+  btn.setAttribute('aria-expanded','true');
+  if(typeof panel.scrollIntoView === 'function') panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function restart(){
+  answers = {};
+  reason5 = null;
+  current = 0;
+  location.reload();
+}
+
+drawPeople();
+for(let i=1;i<=5;i++) SVG_INIT[i] = document.getElementById('svg'+i).innerHTML;
+updateProgress();
+</script>
+</body>
+</html>
